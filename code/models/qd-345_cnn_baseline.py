@@ -20,14 +20,16 @@ from struct import unpack
 EXP_NAME = 'qd-345_shufflenet_256'
 LOAD_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 SAVE_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
+TRAIN_DATA = '/home/apg/Desktop/mw/fourier/qd-345/train/'
+TEST_DATA = '/home/apg/Desktop/mw/fourier/qd-345/test/'
 # LOG_PATH = '/home/apg/Desktop/mw/fourier/logs/' + EXP_NAME + '.txt'
 RAND_SEED = 0
 DEVICE = "cuda:1"
 
 IMG_SIDE = 256
 NUM_CLASSES = 345
-EPOCHS = 0
-LEARNING_RATE = 0.001
+EPOCHS = 10
+LEARNING_RATE = 1e-3
 BATCH_SIZE = 128
 LOSS_FN = nn.CrossEntropyLoss()
 
@@ -264,8 +266,6 @@ def unpack_drawings(filename):
               break
   return imageset
 
-train_dir = '/home/apg/Desktop/mw/fourier/qd-345/train/'
-test_dir = '/home/apg/Desktop/mw/fourier/qd-345/test/'
 train_imgs = []
 test_imgs = []
 train_counts = []
@@ -340,8 +340,8 @@ list_of_classes = ["The Eiffel Tower", "The Great Wall of China", "The Mona Lisa
 
 # load dataset
 for item in list_of_classes:
-  train_folder = train_dir + item + '.bin'
-  test_folder = test_dir + item + '.bin'
+  train_folder = TRAIN_DATA + item + '.bin'
+  test_folder = TEST_DATA + item + '.bin'
   train_drawings = unpack_drawings(train_folder)
   train_imgs += train_drawings
   train_counts.append(len(train_drawings))
@@ -358,7 +358,7 @@ random.seed(RAND_SEED)
 # create datasets
 train_data = QuickdrawDataset(train_imgs, train_counts, is_test=False)
 rand_test_data = QuickdrawDataset(test_imgs, test_counts, is_test=True)
-adv_test_data = QuickdrawDataset(test_imgs, test_counts, is_test=False)
+# adv_test_data = QuickdrawDataset(test_imgs, test_counts, is_test=False)
 
 # create dataloaders
 g = torch.Generator()
@@ -369,15 +369,15 @@ adv_test_loader = DataLoader(adv_test_data, batch_size=BATCH_SIZE, shuffle=False
 
 # init model and optimizer
 model = models.shufflenet_v2_x0_5()
-checkpoint = torch.load(LOAD_PATH, map_location=torch.device(DEVICE))
-model.load_state_dict(checkpoint['model_state_dict'])
+# checkpoint = torch.load(LOAD_PATH, map_location=torch.device(DEVICE))
+# model.load_state_dict(checkpoint['model_state_dict'])
 model.to(DEVICE)
-# optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 # optim.load_state_dict(checkpoint['optimizer_state_dict'])
 # epoch = checkpoint['epoch']
 epoch = 0
 
-# train for EPOCHS number of epochs then evaluate on test data with affine transformations
+# train for EPOCHS number of epochs
 for i in range(epoch, EPOCHS):
     print("Epoch " + str(i + 1) + "\n")
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
