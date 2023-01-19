@@ -4,7 +4,6 @@ from torchvision import datasets, models
 from torchvision import transforms as T
 from torch.utils.data import DataLoader
 import random
-import cv2
 import numpy as np
 
 # Env Vars
@@ -12,7 +11,7 @@ import numpy as np
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'mnist_shufflenet'
+EXP_NAME = 'mnist_baseline_cnn5-2'
 LOAD_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 SAVE_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 MNIST_DATA = '/home/apg/Desktop/mw/fourier/mnist'
@@ -108,7 +107,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
       # print current training metrics for user
       y, out, loss = y.to("cpu"), out.to("cpu"), loss.to("cpu")
       loss_val = loss.item()
-      if batch % 50 == 0:
+      if batch % 12 == 0:
           current = (batch + 1) * BATCH_SIZE
           print(f"loss: {loss_val:>7f}  [{current:>5d}/{size:>5d}]")
 
