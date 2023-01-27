@@ -1,6 +1,0 @@
-Evaluating against random transformations...
-Mean acc: 0.5429
-Acc std: 0.0010882
-
--------------------------------
-

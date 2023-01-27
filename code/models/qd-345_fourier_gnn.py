@@ -21,7 +21,7 @@ from torch_geometric.nn import global_mean_pool
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'qd-345_256_fourier_gnn'
+EXP_NAME = 'qd-345_256_fourier_gnn_wide'
 LOAD_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 SAVE_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 TRAIN_DATA = '/home/apg/Desktop/mw/fourier/qd-345/train/'
@@ -260,30 +260,19 @@ class GCN(torch.nn.Module):
                                     nn.ReLU(),
                                     nn.Linear(512, 512),
                                     nn.ReLU(),
-                                    nn.Linear(512, 512),
-                                    nn.ReLU(),
-                                    nn.Linear(512, 512),
-                                    nn.ReLU()
                                 )
     self.edge_proj = nn.Sequential(
                                 nn.Linear(EDGE_ATTR_DIM, 64),
                                 nn.ReLU(),
-                                nn.Linear(64, 64),
-                                nn.ReLU(),
                                 nn.Linear(64, 1),
                                 nn.Sigmoid()
                             )
-    self.conv1 = GCNConv(512, 512)
-    self.conv2 = GCNConv(512, 512)
-    self.conv3 = GCNConv(512, 512)
-    self.conv4 = GCNConv(512, 512)
-    self.conv5 = GCNConv(1024, 1024)
-    self.conv6 = GCNConv(1024, 1024)
+    self.relu = nn.ReLU()
+    self.conv6 = GCNConv(512, 1024)
     self.conv7 = GCNConv(1024, 1024)
     self.conv8 = GCNConv(1024, 1024)
-    self.fc1 = nn.Linear(1024, 1024)
-    self.fc2 = nn.Linear(1024, 1024)
-    self.head = nn.Linear(1024, NUM_CLASSES)
+    self.fc1 = nn.Linear(1024, 2048)
+    self.head = nn.Linear(2048, NUM_CLASSES)
 
   def forward(self, data):
     x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
@@ -292,27 +281,15 @@ class GCN(torch.nn.Module):
       edge_attr = edge_attr.squeeze(dim=2)
     edge_weight = self.edge_proj(edge_attr)
     x = self.embedding(x)
-    x = self.conv1(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
-    x = self.conv2(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
-    x = self.conv3(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
-    x = self.conv4(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
-    x = self.conv5(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
     x = self.conv6(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
+    x = self.relu(x)
     x = self.conv7(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
+    x = self.relu(x)
     x = self.conv8(x, edge_index, edge_weight)
-    x = nn.ReLU(x)
+    x = self.relu(x)
     x = global_mean_pool(x, batch)
     x = self.fc1(x)
-    x = nn.ReLU(x)
-    x = self.fc2(x)
-    x = nn.ReLU(x)
+    x = self.relu(x)
     return self.head(x)
 
 
