@@ -1,6 +1,5 @@
 import os
 import torch
-import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import Dataset
 from torchvision import transforms as T
@@ -216,7 +215,7 @@ def fourier_transform(vector_img, is_test):
   stroke_fourier_descriptors = np.stack(stroke_fourier_descriptors)
   stroke_fourier_descriptors = torch.from_numpy(stroke_fourier_descriptors).float()
   return stroke_fourier_descriptors, edge_indices, edge_attr
-  
+
 # helper method to find class based on imgset index
 def find_class(idx, count_list):
   class_id = 0
@@ -252,7 +251,7 @@ class QuickdrawDataset(Dataset):
     
     
 # pytorch-geometric GCN
-class GCN(torch.nn.Module):
+class GCN(nn.Module):
   def __init__(self):
     super(GCN, self).__init__()
     self.embedding = nn.Sequential(
@@ -379,7 +378,6 @@ def unpack_drawing(file_handle):
       image.append((x, y))
 
   return image
-
 
 def unpack_drawings(filename):
   imageset = []
