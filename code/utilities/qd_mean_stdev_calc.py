@@ -180,7 +180,7 @@ def fourier_transform(vector_img, is_test):
       stroke_fourier_descriptors.append(coeffs.flatten())
 
   
-  return stroke_fourier_descriptors, edge_indices, edge_attr
+  return stroke_fourier_descriptors
 
 
 # load dataset
