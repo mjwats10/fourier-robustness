@@ -20,7 +20,7 @@ from torch_geometric.nn import global_mean_pool
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'qd-345_256_fourier_gnn_deep_new-norms'
+EXP_NAME = 'qd-345_256_fourier_gnn_deep_new-norms_lr1e-4'
 LOAD_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 SAVE_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 TRAIN_DATA = '/home/apg/Desktop/mw/fourier/qd-345/train/'
@@ -32,7 +32,7 @@ DEVICE = "cuda:1"
 IMG_SIDE = 256
 NUM_CLASSES = 345
 EPOCHS = 10
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-4
 BATCH_SIZE = 128
 LOSS_FN = nn.CrossEntropyLoss()
 FOURIER_ORDER = 10

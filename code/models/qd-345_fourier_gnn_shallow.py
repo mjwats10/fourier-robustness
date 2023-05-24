@@ -20,18 +20,18 @@ from torch_geometric.nn import global_mean_pool
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'qd-345_256_fourier_gnn_shallow_new-norms'
+EXP_NAME = 'qd-345_256_fourier_gnn_shallow_new-norms_20ep'
 LOAD_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 SAVE_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
 TRAIN_DATA = '/home/apg/Desktop/mw/fourier/qd-345/train/'
 TEST_DATA = '/home/apg/Desktop/mw/fourier/qd-345/test/'
 # LOG_PATH = '/home/apg/Desktop/mw/fourier/logs/' + EXP_NAME + '.txt'
 RAND_SEED = 0
-DEVICE = "cuda:1"
+DEVICE = "cuda:0"
 
 IMG_SIDE = 256
 NUM_CLASSES = 345
-EPOCHS = 10
+EPOCHS = 20
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 128
 LOSS_FN = nn.CrossEntropyLoss()
