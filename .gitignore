@@ -2,3 +2,5 @@
 /mnist
 /qd-345
 .DS_Store
+.python-version
+/env
