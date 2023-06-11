@@ -15,6 +15,7 @@ else:
     MNIST_DATA = '/home/matt/fourier/mnist'
 FOURIER_ORDER = 20
 BATCH_SIZE = 60000
+RAND_SEED = 0
 
 # function to ensure deterministic worker re-seeding for reproduceability
 def seed_worker(worker_id):
@@ -41,7 +42,7 @@ def transform_train(img):
     contour = np.squeeze(contours[largest_index])
     sketch_center = pyefd.calculate_dc_coefficients(contour)
     coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
-    return torch.from_numpy(coeffs.flatten()).float()
+    return torch.from_numpy(coeffs).float()
 
 
 # seed RNGs
@@ -53,8 +54,8 @@ train_data = datasets.MNIST(root=MNIST_DATA, train=True, download=True, transfor
 
 # load dataset
 fourier_descriptors = []
-for img in train_data:
-  fourier_descriptors += transform_train(img, False)
+for (img,label) in train_data:
+  fourier_descriptors.append(img)
 
 fourier_descriptors = np.stack(fourier_descriptors)
 mean = np.mean(fourier_descriptors, axis=0)
