@@ -8,6 +8,11 @@ import numpy as np
 import pyefd
 import cv2
 
+SERVER = "matt"
+if SERVER == "apg":
+    MNIST_DATA = '/home/apg/mw/fourier/mnist'
+else:
+    MNIST_DATA = '/home/matt/fourier/mnist'
 FOURIER_ORDER = 20
 BATCH_SIZE = 60000
 
