@@ -5,6 +5,8 @@ from torchvision import transforms as T
 from torch.utils.data import DataLoader
 import random
 import numpy as np
+import pyefd
+import cv2
 
 # Env Vars
 # torch.use_deterministic_algorithms(True)
@@ -13,7 +15,7 @@ import numpy as np
 # Const vars
 EXP_NAME = 'mnist_fourier_cnn5-2'
 SERVER = "apg"
-if SERVER = "apg":
+if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
     BEST_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_best.pt'
     MNIST_DATA = '/home/apg/mw/fourier/mnist'
@@ -48,6 +50,8 @@ transforms_norm = T.Compose(
         T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
     ]
 )
+
+transforms_tensor = T.ToTensor()
   
 # transform function - normalize img
 def transform_train(img):

@@ -5,13 +5,15 @@ from torchvision import transforms as T
 from torch.utils.data import DataLoader
 import random
 import numpy as np
+import pyefd
+import cv2
 
 # Env Vars
 # torch.use_deterministic_algorithms(True)
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'mnist_baseline_cnn5-2'
+EXP_NAME = 'mnist_fourier_mlp'
 SERVER = "apg"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
@@ -22,11 +24,9 @@ else:
     BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
     MNIST_DATA = '/home/matt/fourier/mnist'
 
-FOURIER_ORDER = 1
-IMG_SIDE = 28
-IMG_CENTER = np.asarray(((IMG_SIDE - 1) / 2, (IMG_SIDE - 1) / 2))
+FOURIER_ORDER = 10
 RAND_SEED = 0
-DEVICE = "cuda:1"
+DEVICE = "cuda:0"
 NUM_CLASSES = 10
 EPOCHS = 30
 LEARNING_RATE = 1e-3
@@ -41,30 +41,57 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-# Define transformation(s) to be applied to dataset-
-transforms_norm = T.Compose(
-      [
-          T.ToTensor(),
-          T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
-      ]
-  )
-
+# Define transformation(s) to be applied to dataset
 transforms_tensor = T.ToTensor()
   
-# transform functions - take sketch image, return torch tensor of descriptors
+# transform function - normalize img
 def transform_train(img):
-  return transforms_norm(img)
+    raster = np.asarray(img) # convert PIL image to numpy array for openCV
+    ret, raster = cv2.threshold(raster, 100, 255, cv2.THRESH_BINARY) # binarize image
+    contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
+    
+    # since some images have artifacts disconnected from the digit, extract only
+    # largest contour from the contour list (this should be the digit)
+    largest_size = 0
+    largest_index = 0
+    for i, contour in enumerate(contours):
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = i
+
+    # get translation and rotation offsets
+    contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
+    return torch.from_numpy(coeffs.flatten()).float()
 
 def transform_test(img):
-  img = transforms_norm(img)
+    # apply random corrupting transformation to input img
+    img = transforms_tensor(img.astype(np.float32))
+    angle = random.random()*60 - 30
+    deltaX = random.randint(-3, 3)
+    deltaY = random.randint(-3, 3)
+    img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = np.squeeze(img.numpy()).astype(np.uint8)
 
-  # add rotations and translations at test time
-  angle = random.random()*60 - 30
-  deltaX = random.randint(-3, 3)
-  deltaY = random.randint(-3, 3)
-	
-  return T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
-	                             interpolation=T.InterpolationMode.BILINEAR)
+    ret, img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
+    
+    # since some images have artifacts disconnected from the digit, extract only
+    # largest contour from the contour list (this should be the digit)
+    largest_size = 0
+    largest_index = 0
+    for i, contour in enumerate(contours):
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = i
+
+    # get translation and rotation offsets
+    contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
+    return torch.from_numpy(coeffs.flatten()).float()
 
 
 class CNN(nn.Module):
