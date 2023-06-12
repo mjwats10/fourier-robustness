@@ -197,9 +197,9 @@ def rand_test_loop(dataloader, model):
   with torch.no_grad():
     total_correct = 0
     for x, y in dataloader:
-      x, y = x.to(DEVICE), y.to(DEVICE)
+      x = x.to(DEVICE)
       out = model(x)
-      y, out = y.to("cpu"), out.to("cpu")
+      out = out.to("cpu")
       pred = out.argmax(dim=1, keepdim=True)
       total_correct += pred.eq(y.view_as(pred)).sum().item()
 
@@ -246,11 +246,13 @@ for i in range(epoch, EPOCHS):
     acc = rand_test_loop(dataloader=test_loader,model=model)
     if acc > best_acc:
         torch.save(model.state_dict(), BEST_PATH)
+        best_acc = acc
+    print(f"best acc: {best_acc:.7f}")
     print("\n-------------------------------\n")
  
 # evaluate on random translations and rotations
 print("Evaluating against random transformations...")
-model = model.load_state_dict(torch.load(BEST_PATH,map_location=DEVICE))
+model.load_state_dict(torch.load(BEST_PATH))
 random.seed(RAND_SEED)
 accuracies = []
 for i in range(30):
