@@ -14,7 +14,7 @@ import cv2
 
 # Const vars
 EXP_NAME = 'mnist_fourier_cnn5-2'
-SERVER = "apg"
+SERVER = "matt"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
     BEST_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_best.pt'

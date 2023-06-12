@@ -12,7 +12,7 @@ import numpy as np
 
 # Const vars
 EXP_NAME = 'mnist_baseline_cnn5-2'
-SERVER = "apg"
+SERVER = "matt"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
     BEST_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_best.pt'
@@ -22,13 +22,10 @@ else:
     BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
     MNIST_DATA = '/home/matt/fourier/mnist'
 
-FOURIER_ORDER = 1
-IMG_SIDE = 28
-IMG_CENTER = np.asarray(((IMG_SIDE - 1) / 2, (IMG_SIDE - 1) / 2))
 RAND_SEED = 0
-DEVICE = "cuda:1"
+DEVICE = "cuda:0"
 NUM_CLASSES = 10
-EPOCHS = 30
+EPOCHS = 30 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 NUM_TRAIN_BATCHES = 60000 // BATCH_SIZE
@@ -135,9 +132,9 @@ def rand_test_loop(dataloader, model):
   with torch.no_grad():
     total_correct = 0
     for x, y in dataloader:
-      x, y = x.to(DEVICE), y.to(DEVICE)
+      x = x.to(DEVICE)
       out = model(x)
-      y, out = y.to("cpu"), out.to("cpu")
+      out = out.to("cpu")
       pred = out.argmax(dim=1, keepdim=True)
       total_correct += pred.eq(y.view_as(pred)).sum().item()
 
@@ -184,11 +181,13 @@ for i in range(epoch, EPOCHS):
     acc = rand_test_loop(dataloader=test_loader,model=model)
     if acc > best_acc:
         torch.save(model.state_dict(), BEST_PATH)
+        best_acc = acc
+    print(f"best val acc: {best_acc:.7f}")
     print("\n-------------------------------\n")
  
 # evaluate on random translations and rotations
 print("Evaluating against random transformations...")
-model = model.load_state_dict(torch.load(BEST_PATH,map_location=DEVICE))
+model.load_state_dict(torch.load(BEST_PATH))
 random.seed(RAND_SEED)
 accuracies = []
 for i in range(30):
