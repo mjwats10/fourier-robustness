@@ -15,15 +15,18 @@ from struct import pack, unpack, error
 #-----------------------------------------------------------------
 
 # const vars
-root_dir = "/home/matt/"
-train_dir = root_dir + 'fourier/qd-3/train/'
-test_dir = root_dir + 'fourier/qd-3/test/'
+ROOT_DIR = "/home/matt/fourier/"
+TRAIN_DIR = ROOT_DIR + 'qd-3/train/'
+VAL_DIR = ROOT_DIR + 'qd-3/val'
+TEST_DIR = ROOT_DIR + 'qd-3/test/'
 FOURIER_ORDER = 20
-IMG_SIDE = 256
+IMG_SIDE = 28
+PADDING = 96
 RAND_SEED = 0
-num_train = 10000
-num_test = 1000
-list_of_classes = ["circle", "square", "triangle"]
+NUM_TRAIN = 10000
+NUM_VAL = 1000
+NUM_TEST = 1000
+LIST_OF_CLASSES = ["circle", "square", "triangle"]
 
 #-----------------------------------------------------------------
 
@@ -51,11 +54,12 @@ def unpack_drawings(filename):
               break
   return drawings
 
-def sample_drawings(drawings, num_train, num_test):
-  all_sampled = random.sample(drawings, k=(num_train+num_test))
+def sample_drawings(drawings, num_train, num_val, num_test):
+  all_sampled = random.sample(drawings, k=(num_train+num_val+num_test))
   train = all_sampled[:num_train]
-  test = all_sampled[num_train:]
-  return train, test
+  val = all_sampled[num_train:num_val]
+  test = all_sampled[num_val:]
+  return train, val, test
 
 def pack_drawings(filename, drawings):
   with open(filename, 'wb') as f:
@@ -73,26 +77,29 @@ def pack_drawings(filename, drawings):
 
 #-----------------------------------------------------------------
 
-# # download, sample, and create dataset
-# os.makedirs(train_dir)
-# os.makedirs(test_dir)
-# for item in list_of_classes:
-#   url = 'gs://quickdraw_dataset/full/binary/' + item + '.bin'
-#   dest = root_dir + item + '.bin'
-#   subprocess.run(f"gsutil -m cp {url} {dest}", shell=True)
-#   drawings = unpack_drawings(dest)
-#   train, test = sample_drawings(drawings, num_train, num_test)
+# download, sample, and create dataset
+os.makedirs(TRAIN_DIR)
+os.makedirs(VAL_DIR)
+os.makedirs(TEST_DIR)
+for item in LIST_OF_CLASSES:
+  url = 'gs://quickdraw_dataset/full/binary/' + item + '.bin'
+  dest = ROOT_DIR + item + '.bin'
+  subprocess.run(f"gsutil -m cp {url} {dest}", shell=True)
+  drawings = unpack_drawings(dest)
+  train, val, test = sample_drawings(drawings, NUM_TRAIN, NUM_VAL, NUM_TEST)
 
-#   train_file = train_dir + item + '.bin'
-#   test_file = test_dir + item + '.bin'
-#   pack_drawings(train_file, train)
-#   pack_drawings(test_file, test)
-#   subprocess.run(f"rm {dest}", shell=True)
+  train_file = TRAIN_DIR + item + '.bin'
+  val_file = VAL_DIR + item + '.bin'
+  test_file = TEST_DIR + item + '.bin'
+  pack_drawings(train_file, train)
+  pack_drawings(val_file, val)
+  pack_drawings(test_file, test)
+  subprocess.run(f"rm {dest}", shell=True)
 
 #-----------------------------------------------------------------
 
 # convert raw vector image to single raster image
-def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=80, bg_color=(0,0,0), fg_color=(1,1,1)):
+def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=PADDING, bg_color=(0,0,0), fg_color=(1,1,1)):
   """
   padding and line_diameter are relative to the original 256x256 image.
   """
@@ -135,12 +142,8 @@ def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=80, 
   raster = np.copy(np.asarray(data)[::4]).reshape(side, side)
   return raster
 
-# Define transformation(s) to be applied to dataset-
-transforms_norm = T.Compose(
-      [
-          T.ToTensor(), # scales integer inputs in the range [0, 255] into the range [0.0, 1.0]
-      ]
-  )
+# Define transformation(s) to be applied to dataset
+transforms_tensor = T.ToTensor()
 
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform(vector_img, is_test):
@@ -148,7 +151,7 @@ def transform(vector_img, is_test):
 
   # add rotations and translations at test time
   if is_test: 
-    raster = transforms_norm(raster.astype(np.float32))
+    raster = transforms_tensor(raster.astype(np.float32))
 
     angle = random.random()*60 - 30
     deltaX = random.randint(-3, 3)
@@ -204,13 +207,17 @@ def remove_bad_imgs(imgset, is_test):
 
 # remove bad imgs from dataset
 random.seed(RAND_SEED)
-for item in list_of_classes:
+for item in LIST_OF_CLASSES:
   print(item)
-  folder = train_dir + item + '.bin'
+  folder = TRAIN_DIR + item + '.bin'
   drawings = unpack_drawings(folder)
   drawings = remove_bad_imgs(drawings, False)
   pack_drawings(folder, drawings)
-  folder = test_dir + item + '.bin'
+  folder = VAL_DIR + item + '.bin'
+  drawings = unpack_drawings(folder)
+  drawings = remove_bad_imgs(drawings, False)
+  pack_drawings(folder, drawings)
+  folder = TEST_DIR + item + '.bin'
   drawings = unpack_drawings(folder)
   drawings = remove_bad_imgs(drawings, True)
   pack_drawings(folder, drawings)
