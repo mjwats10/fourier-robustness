@@ -110,7 +110,7 @@ def transform_train(img):
 
 def transform_test(img):
     # apply random corrupting transformation to input img
-    img = transforms_tensor(img.astype(np.float32))
+    img = transforms_tensor(np.asarray(img,dtype=np.float32))
     angle = random.random()*60 - 30
     deltaX = random.randint(-3, 3)
     deltaY = random.randint(-3, 3)
