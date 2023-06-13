@@ -61,7 +61,25 @@ def transform_test(img):
   deltaY = random.randint(-3, 3)
 	
   return T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
-	                             interpolation=T.InterpolationMode.BILINEAR)
+	                         interpolation=T.InterpolationMode.BILINEAR)
+
+
+class MNIST_VAL(datasets.MNIST):
+    def __init__(self, is_val=False):
+        super(MNIST_VAL, self).__init__()
+        self.is_val = is_val
+
+    def _load_data(self):
+        image_file = f"{'train' if self.train else 't10k'}-images-idx3-ubyte"
+        data = read_image_file(os.path.join(self.raw_folder, image_file))
+
+        label_file = f"{'train' if self.train else 't10k'}-labels-idx1-ubyte"
+        targets = read_label_file(os.path.join(self.raw_folder, label_file))
+
+        if self.is_val:
+            return data[50000:], targets[50000:]
+        else:
+            return data[:50000], targets[:50000]
 
 
 class CNN(nn.Module):
@@ -123,7 +141,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
       total_correct += correct
       total_loss += loss_val
       # print(f"train loss: {loss_val:>7f}   train accuracy: {correct / BATCH_SIZE:.7f}   [batch: {batch + 1:3d}/{(size // BATCH_SIZE) + 1:3d}]")      
-    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.7f}")
+    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.4f}")
 
 # rand_test_loop evaluates model performance on test set with random affine transformations
 def rand_test_loop(dataloader, model):
@@ -147,6 +165,7 @@ random.seed(RAND_SEED)
 
 # create train, eval, and test datasets
 train_data = datasets.MNIST(root=MNIST_DATA, train=True, download=True, transform=transform_train)
+val_data = datasets.MNIST(root=MNIST_DATA, train=True, is_val=True, download=True, transform=transform_train)
 test_data = datasets.MNIST(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
 
 # create generator for dataloaders and create dataloaders for each dataset
@@ -178,11 +197,11 @@ for i in range(epoch, EPOCHS):
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
                 }, CHECK_PATH)
-    acc = rand_test_loop(dataloader=test_loader,model=model)
+    acc = rand_test_loop(dataloader=val_loader,model=model)
     if acc > best_acc:
         torch.save(model.state_dict(), BEST_PATH)
         best_acc = acc
-    print(f"best val acc: {best_acc:.7f}")
+    print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
  
 # evaluate on random translations and rotations
