@@ -11,7 +11,7 @@ import numpy as np
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'mnist_baseline_cnn5-2'
+EXP_NAME = 'mnist_aug_mispredict_cnn5-2'
 SERVER = "matt"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
@@ -28,8 +28,6 @@ NUM_CLASSES = 10
 EPOCHS = 30 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
-NUM_TRAIN_BATCHES = 60000 // BATCH_SIZE
-NUM_VAL_BATCHES = 10000 // BATCH_SIZE
 LOSS_FN = nn.CrossEntropyLoss()
 
 # function to ensure deterministic worker re-seeding for reproduceability
@@ -40,46 +38,59 @@ def seed_worker(worker_id):
 
 # Define transformation(s) to be applied to dataset-
 transforms_norm = T.Compose(
-      [
-          T.ToTensor(),
-          T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
-      ]
-  )
+    [
+        T.ToTensor(),
+        T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
+    ]
+)
 
 transforms_tensor = T.ToTensor()
   
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform_train(img):
-  return transforms_norm(img)
+  img = transforms_norm(img)
+
+  # add rotations and translations at test time
+  angle = random.random()*30 - 30
+  deltaX = random.randint(-3, 0)
+  deltaY = random.randint(-3, 0)
+	
+  return T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
+	                             interpolation=T.InterpolationMode.BILINEAR)
 
 def transform_test(img):
   img = transforms_norm(img)
 
   # add rotations and translations at test time
-  angle = random.random()*60 - 30
-  deltaX = random.randint(-3, 3)
-  deltaY = random.randint(-3, 3)
+  angle = random.random()*30
+  deltaX = random.randint(0, 3)
+  deltaY = random.randint(0, 3)
 	
   return T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
-	                         interpolation=T.InterpolationMode.BILINEAR)
+	                             interpolation=T.InterpolationMode.BILINEAR)
 
 
 class MNIST_VAL(datasets.MNIST):
-    def __init__(self, is_val=False):
-        super(MNIST_VAL, self).__init__()
-        self.is_val = is_val
-
-    def _load_data(self):
-        image_file = f"{'train' if self.train else 't10k'}-images-idx3-ubyte"
-        data = read_image_file(os.path.join(self.raw_folder, image_file))
-
-        label_file = f"{'train' if self.train else 't10k'}-labels-idx1-ubyte"
-        targets = read_label_file(os.path.join(self.raw_folder, label_file))
-
-        if self.is_val:
-            return data[50000:], targets[50000:]
-        else:
-            return data[:50000], targets[:50000]
+    def __init__(
+            self, 
+            root: str, 
+            train: bool = True, 
+            val: bool = False,
+            transform = None,
+            target_transform = None,
+            download: bool = False):
+        super().__init__(
+            root,
+            train = train,
+            transform = transform,
+            target_transform = target_transform,
+            download = download)
+        if val:
+            self.data = self.data[50000:]
+            self.targets = self.targets[50000:]
+        elif train:
+            self.data = self.data[:50000]
+            self.targets = self.targets[:50000]
 
 
 class CNN(nn.Module):
@@ -141,7 +152,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
       total_correct += correct
       total_loss += loss_val
       # print(f"train loss: {loss_val:>7f}   train accuracy: {correct / BATCH_SIZE:.7f}   [batch: {batch + 1:3d}/{(size // BATCH_SIZE) + 1:3d}]")      
-    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.4f}")
+    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.7f}")
 
 # rand_test_loop evaluates model performance on test set with random affine transformations
 def rand_test_loop(dataloader, model):
@@ -164,14 +175,15 @@ torch.manual_seed(RAND_SEED)
 random.seed(RAND_SEED)
 
 # create train, eval, and test datasets
-train_data = datasets.MNIST(root=MNIST_DATA, train=True, download=True, transform=transform_train)
-val_data = datasets.MNIST(root=MNIST_DATA, train=True, is_val=True, download=True, transform=transform_train)
-test_data = datasets.MNIST(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
+train_data = MNIST_VAL(root=MNIST_DATA, train=True, val=False, download=True, transform=transform_train)
+val_data = MNIST_VAL(root=MNIST_DATA, train=True, val=True, download=True, transform=transform_train)
+test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
 
 # create generator for dataloaders and create dataloaders for each dataset
 g = torch.Generator()
 g.manual_seed(RAND_SEED)
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, worker_init_fn=seed_worker, generator=g)
+val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
 
 # initalize model object and load model parameters into optimizer
@@ -189,6 +201,7 @@ best_acc = 0
 model.to(DEVICE)
 
 # train for EPOCHS number of epochs
+print(EXP_NAME)
 for i in range(epoch, EPOCHS):
     print("Epoch " + str(i + 1) + "\n")
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)

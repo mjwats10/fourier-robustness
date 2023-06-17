@@ -5,15 +5,13 @@ from torchvision import transforms as T
 from torch.utils.data import DataLoader
 import random
 import numpy as np
-import pyefd
-import cv2
 
 # Env Vars
 # torch.use_deterministic_algorithms(True)
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'mnist_fourier_cnn5-2'
+EXP_NAME = 'mnist_baseline_cnn5-2'
 SERVER = "matt"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
@@ -24,13 +22,10 @@ else:
     BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
     MNIST_DATA = '/home/matt/fourier/mnist'
 
-FOURIER_ORDER = 1
-IMG_SIDE = 28
-IMG_CENTER = np.asarray(((IMG_SIDE - 1) / 2, (IMG_SIDE - 1) / 2))
 RAND_SEED = 0
 DEVICE = "cuda:0"
 NUM_CLASSES = 10
-EPOCHS = 30
+EPOCHS = 30 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
@@ -51,72 +46,20 @@ transforms_norm = T.Compose(
 
 transforms_tensor = T.ToTensor()
   
-# transform function
+# transform functions - take sketch image, return torch tensor of descriptors
 def transform_train(img):
-    raster = np.asarray(img) # convert PIL image to numpy array for openCV
-    ret, raster = cv2.threshold(raster, 100, 255, cv2.THRESH_BINARY) # binarize image
-    contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
-    
-    # since some images have artifacts disconnected from the digit, extract only
-    # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
-
-    # get translation and rotation offsets
-    contour = np.squeeze(contours[largest_index])
-    sketch_center = pyefd.calculate_dc_coefficients(contour)
-    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
-    contour_angle = np.degrees(transform[1])
-    img_offset = (IMG_CENTER - sketch_center).round()
-
-    # de-translate then de-rotate
-    img = transforms_norm(img)
-    img = T.functional.affine(img, 0, (img_offset[0], img_offset[1]), 1, 0,
-                              interpolation=T.InterpolationMode.BILINEAR)
-    img = T.functional.affine(img, -1 * contour_angle, [0, 0], 1, 0,
-                              interpolation=T.InterpolationMode.BILINEAR)
-    return img
+    return transforms_norm(img)
 
 def transform_test(img):
-    # apply random corrupting transformation to input img
-    img = transforms_tensor(np.asarray(img,dtype=np.float32))
+    img = transforms_norm(img)
+
+    # add rotations and translations at test time
     angle = random.random()*60 - 30
     deltaX = random.randint(-3, 3)
     deltaY = random.randint(-3, 3)
-    img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
-                              interpolation=T.InterpolationMode.BILINEAR)
-    img = np.squeeze(img.numpy()).astype(np.uint8)
 
-    ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
-    contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
-    
-    # since some images have artifacts disconnected from the digit, extract only
-    # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
-
-    # get translation and rotation offsets
-    contour = np.squeeze(contours[largest_index])
-    sketch_center = pyefd.calculate_dc_coefficients(contour)
-    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
-    contour_angle = np.degrees(transform[1])
-    img_offset = (IMG_CENTER - sketch_center).round()
-
-    # de-translate then de-rotate
-    img = transforms_norm(img)
-    img = T.functional.affine(img, 0, (img_offset[0], img_offset[1]), 1, 0,
-                              interpolation=T.InterpolationMode.BILINEAR)
-    img = T.functional.affine(img, -1 * contour_angle, [0, 0], 1, 0,
-                              interpolation=T.InterpolationMode.BILINEAR)
-    return img
+    return T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
+                            interpolation=T.InterpolationMode.BILINEAR)
 
 
 class MNIST_VAL(datasets.MNIST):
@@ -144,7 +87,7 @@ class MNIST_VAL(datasets.MNIST):
 
 class CNN(nn.Module):
     def __init__(self):
-        super(CNN, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 64, 3)
         self.conv2 = nn.Conv2d(64, 64, 3)
         self.conv3 = nn.Conv2d(64, 64, 3)
@@ -179,45 +122,45 @@ def train_loop(dataloader, model, loss_fn, optimizer):
     total_correct = 0
     # for each batch in the training set compute loss and update model parameters
     for batch, (x, y) in enumerate(dataloader):
-      x, y = x.to(DEVICE), y.to(DEVICE)
-      # Compute prediction and loss
-      out = model(x)
-      loss = loss_fn(out, y)
+        x, y = x.to(DEVICE), y.to(DEVICE)
+        # Compute prediction and loss
+        out = model(x)
+        loss = loss_fn(out, y)
 
-      # Backpropagation to update model parameters
-      optimizer.zero_grad()
-      loss.backward()
-      optimizer.step()
+        # Backpropagation to update model parameters
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-      # print current training metrics for user
-      y, out, loss = y.to("cpu"), out.to("cpu"), loss.to("cpu")
-      loss_val = loss.item()
-      if batch % 12 == 0:
-          current = (batch + 1) * BATCH_SIZE
-          print(f"loss: {loss_val:>7f}  [{current:>5d}/{size:>5d}]")
+        # print current training metrics for user
+        y, out, loss = y.to("cpu"), out.to("cpu"), loss.to("cpu")
+        loss_val = loss.item()
+        if batch % 12 == 0:
+            current = (batch + 1) * BATCH_SIZE
+            print(f"loss: {loss_val:>7f}  [{current:>5d}/{size:>5d}]")
 
-      pred = out.argmax(dim=1, keepdim=True)
-      correct = pred.eq(y.view_as(pred)).sum().item()
-      total_correct += correct
-      total_loss += loss_val
-      # print(f"train loss: {loss_val:>7f}   train accuracy: {correct / BATCH_SIZE:.7f}   [batch: {batch + 1:3d}/{(size // BATCH_SIZE) + 1:3d}]")      
-    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.7f}")
+        pred = out.argmax(dim=1, keepdim=True)
+        correct = pred.eq(y.view_as(pred)).sum().item()
+        total_correct += correct
+        total_loss += loss_val
+        # print(f"train loss: {loss_val:>7f}   train accuracy: {correct / BATCH_SIZE:.7f}   [batch: {batch + 1:3d}/{(size // BATCH_SIZE) + 1:3d}]")      
+    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.4f}")
 
 # rand_test_loop evaluates model performance on test set with random affine transformations
 def rand_test_loop(dataloader, model):
-  model.eval()
-  size = len(dataloader.dataset)
-  with torch.no_grad():
-    total_correct = 0
-    for x, y in dataloader:
-      x = x.to(DEVICE)
-      out = model(x)
-      out = out.to("cpu")
-      pred = out.argmax(dim=1, keepdim=True)
-      total_correct += pred.eq(y.view_as(pred)).sum().item()
+    model.eval()
+    size = len(dataloader.dataset)
+    with torch.no_grad():
+        total_correct = 0
+        for x, y in dataloader:
+            x = x.to(DEVICE)
+            out = model(x)
+            out = out.to("cpu")
+            pred = out.argmax(dim=1, keepdim=True)
+            total_correct += pred.eq(y.view_as(pred)).sum().item()
 
-    accuracy = total_correct / size
-    return accuracy
+        accuracy = total_correct / size
+        return accuracy
 
 # seed RNGs
 torch.manual_seed(RAND_SEED)
@@ -226,7 +169,7 @@ random.seed(RAND_SEED)
 # create train, eval, and test datasets
 train_data = MNIST_VAL(root=MNIST_DATA, train=True, val=False, download=True, transform=transform_train)
 val_data = MNIST_VAL(root=MNIST_DATA, train=True, val=True, download=True, transform=transform_train)
-test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=transform_test)
+test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
 
 # create generator for dataloaders and create dataloaders for each dataset
 g = torch.Generator()
@@ -263,7 +206,7 @@ for i in range(epoch, EPOCHS):
     if acc > best_acc:
         torch.save(model.state_dict(), BEST_PATH)
         best_acc = acc
-    print(f"best acc: {best_acc:.4f}")
+    print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
  
 # evaluate on random translations and rotations
@@ -272,7 +215,7 @@ model.load_state_dict(torch.load(BEST_PATH))
 random.seed(RAND_SEED)
 accuracies = []
 for i in range(30):
-  accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
+    accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
 accuracies = np.asarray(accuracies)
 mean = np.mean(accuracies)
 std = np.std(accuracies)

@@ -13,7 +13,7 @@ import cv2
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'mnist_fourier_mlp'
+EXP_NAME = 'mnist_four_mispredict_cnn5-2'
 SERVER = "matt"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
@@ -24,7 +24,9 @@ else:
     BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
     MNIST_DATA = '/home/matt/fourier/mnist'
 
-FOURIER_ORDER = 10
+FOURIER_ORDER = 1
+IMG_SIDE = 28
+IMG_CENTER = np.asarray(((IMG_SIDE - 1) / 2, (IMG_SIDE - 1) / 2))
 RAND_SEED = 0
 DEVICE = "cuda:0"
 NUM_CLASSES = 10
@@ -39,78 +41,23 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-# Define transformation(s) to be applied to dataset
+# Define transformation(s) to be applied to dataset-
+transforms_norm = T.Compose(
+    [
+        T.ToTensor(),
+        T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
+    ]
+)
+
 transforms_tensor = T.ToTensor()
-
-means = np.asarray([[ 1.0000000e+00, -5.0184957e-20, -5.5696542e-19, -3.4494427e-01],
- [-2.7267091e-02, -2.6857037e-02, -7.0028782e-02,  3.2007497e-02],
- [ 4.2432837e-02, -1.0955108e-02,  4.9947266e-02, -4.3639980e-02],
- [-1.3231365e-02, -3.1862673e-03, -3.0260244e-02,  1.0512119e-02],
- [-3.9451290e-03, -1.6365657e-03, -4.8560360e-03, -6.6966233e-03],
- [-9.9006589e-05, -3.9384090e-03, -1.6901242e-03,  1.6667262e-03],
- [ 4.1181161e-03,  3.0476106e-03,  4.4212379e-03, -3.7111118e-03],
- [-1.6818375e-04, -2.2885541e-03, -1.3834881e-03,  3.6043104e-05],
- [ 1.4858035e-03,  8.2339084e-04,  1.6646081e-03, -1.7478551e-03],
- [ 4.2826071e-04, -9.9242234e-04, -1.3389527e-03,  7.4838375e-04],
- [ 6.7811849e-04,  8.7898056e-04,  8.5074600e-04, -8.7967666e-04],
- [ 6.5689797e-05, -3.9738783e-04, -2.8131096e-04,  1.7239562e-04],
- [ 5.3711585e-04,  5.9293507e-04,  4.6619258e-04, -4.4258419e-04],
- [ 1.2194442e-04, -2.2288978e-04, -3.9203247e-04, 1.7895861e-04],
- [ 2.9932070e-04,  3.2611564e-04,  2.7608767e-04, -2.4960193e-04],
- [ 2.9204506e-05, -9.6740652e-05, -1.5082426e-04,  7.6019125e-05],
- [ 1.9806912e-04,  1.5656877e-04,  1.8582105e-04, -2.2495823e-04],
- [ 4.4551420e-05, -5.8190275e-05, -1.1468527e-04,  5.9609589e-05],
- [ 1.2926904e-04,  7.2024166e-05,  5.9584243e-05, -1.0684843e-04],
- [ 3.3954806e-05, -1.4570637e-05, -8.3436673e-05,  4.2320229e-05]])
-
-stdevs = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.22759396e-01],
- [1.65906012e-01, 1.80950820e-01, 3.49689871e-01, 1.99603871e-01],
- [1.11437045e-01, 8.92437994e-02, 1.95833012e-01, 1.20404683e-01],
- [7.62690529e-02, 6.39099926e-02, 9.45072919e-02, 6.46416992e-02],
- [5.57328723e-02, 4.34280708e-02, 4.65612561e-02, 4.02896665e-02],
- [2.71149650e-02, 2.66170371e-02, 2.97385808e-02, 2.67203078e-02],
- [2.10881215e-02, 1.92879308e-02, 2.14920528e-02, 2.06694137e-02],
- [1.54367909e-02, 1.52905304e-02, 1.55936116e-02, 1.48296058e-02],
- [1.33549590e-02, 1.24201281e-02, 1.28373653e-02, 1.27569539e-02],
- [1.01144984e-02, 1.04921004e-02, 1.07883746e-02, 1.02084354e-02],
- [8.91223177e-03, 8.50528665e-03, 9.09112580e-03, 9.33418516e-03],
- [7.37450924e-03, 7.48197269e-03, 7.97509681e-03, 7.61566311e-03],
- [6.69074710e-03, 6.42373227e-03, 6.89701224e-03, 6.84088701e-03],
- [5.74082555e-03, 5.81821520e-03, 6.13429025e-03, 5.96161792e-03],
- [5.26886433e-03, 5.20167081e-03, 5.43370517e-03, 5.50555857e-03],
- [4.70780768e-03, 4.73855482e-03, 4.93523199e-03, 4.88662627e-03],
- [4.40586265e-03, 4.30541206e-03, 4.52783192e-03, 4.53947810e-03],
- [3.95527203e-03, 3.97966895e-03, 4.12503956e-03, 4.13487479e-03],
- [3.70030920e-03, 3.66408983e-03, 3.83622549e-03, 3.82866920e-03],
- [3.40025267e-03, 3.37428111e-03, 3.54929711e-03, 3.51667940e-03]])
   
 # transform function
 def transform_train(img):
-    raster = np.asarray(img) # convert PIL image to numpy array for openCV
-    ret, raster = cv2.threshold(raster, 100, 255, cv2.THRESH_BINARY) # binarize image
-    contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
-    
-    # since some images have artifacts disconnected from the digit, extract only
-    # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
-
-    # get translation and rotation offsets
-    contour = np.squeeze(contours[largest_index])
-    coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
-    coeffs = (coeffs - means[:FOURIER_ORDER]) / stdevs[:FOURIER_ORDER]
-    return torch.from_numpy(coeffs.flatten()).float()
-
-def transform_test(img):
     # apply random corrupting transformation to input img
     img = transforms_tensor(np.asarray(img,dtype=np.float32))
-    angle = random.random()*60 - 30
-    deltaX = random.randint(-3, 3)
-    deltaY = random.randint(-3, 3)
+    angle = random.random()*30 - 30
+    deltaX = random.randint(-3, 0)
+    deltaY = random.randint(-3, 0)
     img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
                               interpolation=T.InterpolationMode.BILINEAR)
     img = np.squeeze(img.numpy()).astype(np.uint8)
@@ -129,9 +76,55 @@ def transform_test(img):
 
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
-    coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
-    coeffs = (coeffs - means[:FOURIER_ORDER]) / stdevs[:FOURIER_ORDER]
-    return torch.from_numpy(coeffs.flatten()).float()
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
+    contour_angle = np.degrees(transform[1])
+    img_offset = (IMG_CENTER - sketch_center).round()
+
+    # de-translate then de-rotate
+    img = transforms_norm(img)
+    img = T.functional.affine(img, 0, (img_offset[0], img_offset[1]), 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = T.functional.affine(img, -1 * contour_angle, [0, 0], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    return img
+
+def transform_test(img):
+    # apply random corrupting transformation to input img
+    img = transforms_tensor(np.asarray(img,dtype=np.float32))
+    angle = random.random()*30
+    deltaX = random.randint(0, 3)
+    deltaY = random.randint(0, 3)
+    img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = np.squeeze(img.numpy()).astype(np.uint8)
+
+    ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
+    contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
+    
+    # since some images have artifacts disconnected from the digit, extract only
+    # largest contour from the contour list (this should be the digit)
+    largest_size = 0
+    largest_index = 0
+    for i, contour in enumerate(contours):
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = i
+
+    # get translation and rotation offsets
+    contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
+    contour_angle = np.degrees(transform[1])
+    img_offset = (IMG_CENTER - sketch_center).round()
+
+    # de-translate then de-rotate
+    img = transforms_norm(img)
+    img = T.functional.affine(img, 0, (img_offset[0], img_offset[1]), 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = T.functional.affine(img, -1 * contour_angle, [0, 0], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    return img
 
 
 class MNIST_VAL(datasets.MNIST):
@@ -157,24 +150,33 @@ class MNIST_VAL(datasets.MNIST):
             self.targets = self.targets[:50000]
 
 
-# mlp taking array of normalized fourier descriptors
-class FourierMLP(nn.Module):
+class CNN(nn.Module):
     def __init__(self):
-        super(FourierMLP, self).__init__()
-        self.flatten = nn.Flatten()
-        self.mlp = nn.Sequential(
-        nn.Linear(FOURIER_ORDER*4, 512),
-        nn.ReLU(),
-        nn.Linear(512,512),
-        nn.ReLU(),
-        nn.Linear(512,512),
-        nn.ReLU(),
-        nn.Linear(512,NUM_CLASSES))
+        super(CNN, self).__init__()
+        self.conv1 = nn.Conv2d(1, 64, 3)
+        self.conv2 = nn.Conv2d(64, 64, 3)
+        self.conv3 = nn.Conv2d(64, 64, 3)
+        self.conv4 = nn.Conv2d(64, 64, 3)
+        self.maxpool = nn.MaxPool2d(2) 
+        self.relu = nn.ReLU()
+        self.fc1 = nn.Linear(64 * 4 * 4, 384)
+        self.head = nn.Linear(384, NUM_CLASSES)
 
     def forward(self, x):
-        x = self.flatten(x)
-        out = self.mlp(x)
-        return out
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        x = self.conv3(x)
+        x = self.relu(x)
+        x = self.conv4(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = self.relu(x)
+        return self.head(x)
 
 
 # train_loop is called once each epoch and trains model on training set
@@ -232,7 +234,7 @@ random.seed(RAND_SEED)
 # create train, eval, and test datasets
 train_data = MNIST_VAL(root=MNIST_DATA, train=True, val=False, download=True, transform=transform_train)
 val_data = MNIST_VAL(root=MNIST_DATA, train=True, val=True, download=True, transform=transform_train)
-test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
+test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=transform_test)
 
 # create generator for dataloaders and create dataloaders for each dataset
 g = torch.Generator()
@@ -242,7 +244,7 @@ val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, worker_i
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
 
 # initalize model object and load model parameters into optimizer
-model = FourierMLP()
+model = CNN()
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # checkpoint = torch.load(CHECK_PATH, map_location='cpu')

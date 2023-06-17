@@ -11,7 +11,7 @@ import numpy as np
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'mnist_baseline_cnn5-2'
+EXP_NAME = 'mnist_aug_cnn5-2'
 SERVER = "matt"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
@@ -28,8 +28,6 @@ NUM_CLASSES = 10
 EPOCHS = 30 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
-NUM_TRAIN_BATCHES = 60000 // BATCH_SIZE
-NUM_VAL_BATCHES = 10000 // BATCH_SIZE
 LOSS_FN = nn.CrossEntropyLoss()
 
 # function to ensure deterministic worker re-seeding for reproduceability
@@ -40,11 +38,11 @@ def seed_worker(worker_id):
 
 # Define transformation(s) to be applied to dataset-
 transforms_norm = T.Compose(
-      [
-          T.ToTensor(),
-          T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
-      ]
-  )
+    [
+        T.ToTensor(),
+        T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
+    ]
+)
 
 transforms_tensor = T.ToTensor()
   
@@ -70,6 +68,29 @@ def transform_test(img):
 	
   return T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
 	                             interpolation=T.InterpolationMode.BILINEAR)
+
+
+class MNIST_VAL(datasets.MNIST):
+    def __init__(
+            self, 
+            root: str, 
+            train: bool = True, 
+            val: bool = False,
+            transform = None,
+            target_transform = None,
+            download: bool = False):
+        super().__init__(
+            root,
+            train = train,
+            transform = transform,
+            target_transform = target_transform,
+            download = download)
+        if val:
+            self.data = self.data[50000:]
+            self.targets = self.targets[50000:]
+        elif train:
+            self.data = self.data[:50000]
+            self.targets = self.targets[:50000]
 
 
 class CNN(nn.Module):
@@ -154,13 +175,15 @@ torch.manual_seed(RAND_SEED)
 random.seed(RAND_SEED)
 
 # create train, eval, and test datasets
-train_data = datasets.MNIST(root=MNIST_DATA, train=True, download=True, transform=transform_train)
-test_data = datasets.MNIST(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
+train_data = MNIST_VAL(root=MNIST_DATA, train=True, val=False, download=True, transform=transform_train)
+val_data = MNIST_VAL(root=MNIST_DATA, train=True, val=True, download=True, transform=transform_train)
+test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
 
 # create generator for dataloaders and create dataloaders for each dataset
 g = torch.Generator()
 g.manual_seed(RAND_SEED)
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, worker_init_fn=seed_worker, generator=g)
+val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
 
 # initalize model object and load model parameters into optimizer
@@ -178,6 +201,7 @@ best_acc = 0
 model.to(DEVICE)
 
 # train for EPOCHS number of epochs
+print(EXP_NAME)
 for i in range(epoch, EPOCHS):
     print("Epoch " + str(i + 1) + "\n")
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
@@ -186,11 +210,11 @@ for i in range(epoch, EPOCHS):
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
                 }, CHECK_PATH)
-    acc = rand_test_loop(dataloader=test_loader,model=model)
+    acc = rand_test_loop(dataloader=val_loader,model=model)
     if acc > best_acc:
         torch.save(model.state_dict(), BEST_PATH)
         best_acc = acc
-    print(f"best val acc: {best_acc:.7f}")
+    print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
  
 # evaluate on random translations and rotations

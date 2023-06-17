@@ -13,7 +13,7 @@ import cv2
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'mnist_fourier_mlp'
+EXP_NAME = 'mnist_four_mispredict_mlp'
 SERVER = "matt"
 if SERVER == "apg":
     CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
@@ -84,10 +84,18 @@ stdevs = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.22759396
  [3.70030920e-03, 3.66408983e-03, 3.83622549e-03, 3.82866920e-03],
  [3.40025267e-03, 3.37428111e-03, 3.54929711e-03, 3.51667940e-03]])
   
-# transform function
+# transform function - normalize img
 def transform_train(img):
-    raster = np.asarray(img) # convert PIL image to numpy array for openCV
-    ret, raster = cv2.threshold(raster, 100, 255, cv2.THRESH_BINARY) # binarize image
+    # apply random corrupting transformation to input img
+    img = transforms_tensor(np.asarray(img,dtype=np.float32))
+    angle = random.random()*30 - 30
+    deltaX = random.randint(-3, 0)
+    deltaY = random.randint(-3, 0)
+    img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = np.squeeze(img.numpy()).astype(np.uint8)
+
+    ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
     contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
     
     # since some images have artifacts disconnected from the digit, extract only
@@ -101,6 +109,7 @@ def transform_train(img):
 
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
     coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
     coeffs = (coeffs - means[:FOURIER_ORDER]) / stdevs[:FOURIER_ORDER]
     return torch.from_numpy(coeffs.flatten()).float()
@@ -108,9 +117,9 @@ def transform_train(img):
 def transform_test(img):
     # apply random corrupting transformation to input img
     img = transforms_tensor(np.asarray(img,dtype=np.float32))
-    angle = random.random()*60 - 30
-    deltaX = random.randint(-3, 3)
-    deltaY = random.randint(-3, 3)
+    angle = random.random()*30
+    deltaX = random.randint(0, 3)
+    deltaY = random.randint(0, 3)
     img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
                               interpolation=T.InterpolationMode.BILINEAR)
     img = np.squeeze(img.numpy()).astype(np.uint8)

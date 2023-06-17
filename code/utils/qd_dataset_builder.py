@@ -15,18 +15,84 @@ from struct import pack, unpack, error
 #-----------------------------------------------------------------
 
 # const vars
+DATASET_ID = "345"
 ROOT_DIR = "/home/matt/fourier/"
-TRAIN_DIR = ROOT_DIR + 'qd-3/train/'
-VAL_DIR = ROOT_DIR + 'qd-3/val'
-TEST_DIR = ROOT_DIR + 'qd-3/test/'
+TRAIN_DIR = ROOT_DIR + f'qd-{DATASET_ID}/train/'
+VAL_DIR = ROOT_DIR + f'qd-{DATASET_ID}/val/'
+TEST_DIR = ROOT_DIR + f'qd-{DATASET_ID}/test/'
 FOURIER_ORDER = 20
-IMG_SIDE = 28
-PADDING = 96
+IMG_SIDE = 256
+PADDING = 62
 RAND_SEED = 0
-NUM_TRAIN = 10000
-NUM_VAL = 1000
-NUM_TEST = 1000
-LIST_OF_CLASSES = ["circle", "square", "triangle"]
+NUM_TRAIN = 1000
+NUM_VAL = 100
+NUM_TEST = 100
+# LIST_OF_CLASSES = ["circle", "square", "triangle"]
+LIST_OF_CLASSES = ["The Eiffel Tower", "The Great Wall of China", "The Mona Lisa",
+                   "aircraft carrier", "airplane", "alarm clock", "ambulance", 
+                   "angel", "animal migration", "ant", "anvil", "apple", "arm", "asparagus", 
+                   "axe", "backpack", "banana", "bandage", "barn", "baseball bat", 
+                   "baseball", "basket", "basketball", "bat", "bathtub", "beach", "bear", 
+                   "beard", "bed", "bee", "belt", "bench", "bicycle", "binoculars", 
+                   "bird", "birthday cake", "blackberry", "blueberry", "book", 
+                   "boomerang", "bottlecap", "bowtie", "bracelet", "brain", 
+                   "bread", "bridge", "broccoli", "broom", "bucket", "bulldozer", 
+                   "bus", "bush", "butterfly", "cactus", "cake", "calculator", 
+                   "calendar", "camel", "camera", "camouflage", "campfire", 
+                   "candle", "cannon", "canoe", 'car', 'carrot', "castle", "cat",  
+                   "ceiling fan", "cell phone", "cello", "chair", "chandelier", "church", 
+                   "circle", "clarinet", "clock", "cloud", "coffee cup", 
+                   "compass", "computer", "cookie", "cooler", "couch", "cow",
+                   "crab", "crayon", "crocodile", "crown", "cruise ship", 
+                   "cup", "diamond", "dishwasher", "diving board", "dog", 
+                   "dolphin", "donut", "door", "dragon", "dresser", "drill", 
+                   "drums", "duck", "dumbbell", "ear", "elbow", "elephant", 
+                   "envelope", "eraser", "eye", "eyeglasses", "face", "fan",
+                   "feather", "fence", "finger", "fire hydrant", "fireplace",
+                   "firetruck", "fish", "flamingo", "flashlight", "flip flops", 
+                   "floor lamp", "flower", "flying saucer", "foot", "fork", 
+                   "frog", "frying pan", "garden hose", "garden", "giraffe", 
+                   "goatee", "golf club", "grapes", "grass", "guitar", 
+                   "hamburger", "hammer", "hand", "harp", "hat", "headphones", 
+                   "hedgehog", "helicopter", "helmet", "hexagon", "hockey puck", 
+                   "hockey stick", "horse", "hospital", "hot air balloon", 
+                   "hot dog", "hot tub", "hourglass", "house plant", "house", 
+                   "hurricane", "ice cream", "jacket", "jail", "kangaroo", 
+                   "key", "keyboard", "knee", "knife", "ladder", "lantern", 
+                   "laptop", "leaf", "leg", "light bulb", "lighter", "lighthouse",
+                   "lightning", "line", "lion", "lipstick", "lobster", "lollipop",
+                   "mailbox", "map", "marker", "matches", "megaphone", "mermaid", 
+                   "microphone", "microwave", "monkey", "moon", "mosquito", 
+                   "motorbike", "mountain", "mouse", "moustache", "mouth", "mug",
+                   "mushroom", "nail", "necklace", "nose", "ocean", "octagon", 
+                   "octopus", "onion", "oven", "owl", "paint can", "paintbrush", 
+                   "palm tree", "panda", "pants", "paper clip", "parachute", 
+                   "parrot", "passport", "peanut", "pear", "peas", "pencil", 
+                   "penguin", "piano", "pickup truck", "picture frame", "pig", 
+                   "pillow", "pineapple", "pizza", "pliers", "police car", 
+                   "pond", "pool", "popsicle", "postcard", "potato", 
+                   "power outlet", "purse", "rabbit", "raccoon", "radio", 
+                   "rain", 'rainbow', 'rake', 'remote control', 'rhinoceros', 
+                   'rifle', 'river', 'roller coaster', 'rollerskates', 
+                   'sailboat', 'sandwich', 'saw', 'saxophone', 'school bus', 
+                   'scissors', 'scorpion', 'screwdriver', 'sea turtle', 
+                   'see saw', 'shark', 'sheep', 'shoe', 'shorts', 'shovel', 
+                   'sink', 'skateboard', 'skull', 'skyscraper', 'sleeping bag', 
+                   'smiley face', 'snail', 'snake', 'snorkel', 'snowflake', 
+                   'snowman', 'soccer ball', 'sock', 'speedboat', 'spider', 
+                   'spoon', 'spreadsheet', 'square', 'squiggle', 'squirrel', 
+                   'stairs', 'star', 'steak', 'stereo', 'stethoscope', 'stitches', 
+                   'stop sign', 'stove', 'strawberry', 'streetlight', 
+                   'string bean', 'submarine', 'suitcase', 'sun', 'swan', 
+                   'sweater', 'swing set', 'sword', 'syringe', 't-shirt', 
+                   'table', 'teapot', 'teddy-bear', 'telephone', 'television', 
+                   'tennis racquet', 'tent', 'tiger', 'toaster', 'toe', 'toilet', 
+                   'tooth', 'toothbrush', 'toothpaste', 'tornado', 'tractor', 
+                   'traffic light', 'train', 'tree', 'triangle', 'trombone', 
+                   'truck', 'trumpet', 'umbrella', 'underwear', 'van', 'vase', 'violin', 
+                   'washing machine', 'watermelon', 'waterslide', 'whale', 
+                   'wheel', 'windmill', 'wine bottle', 'wine glass', 'wristwatch', 
+                   'yoga', 'zebra', 'zigzag']
 
 #-----------------------------------------------------------------
 
@@ -57,8 +123,8 @@ def unpack_drawings(filename):
 def sample_drawings(drawings, num_train, num_val, num_test):
   all_sampled = random.sample(drawings, k=(num_train+num_val+num_test))
   train = all_sampled[:num_train]
-  val = all_sampled[num_train:num_val]
-  test = all_sampled[num_val:]
+  val = all_sampled[num_train:(num_train+num_val)]
+  test = all_sampled[(num_train+num_val):]
   return train, val, test
 
 def pack_drawings(filename, drawings):
@@ -83,8 +149,9 @@ os.makedirs(VAL_DIR)
 os.makedirs(TEST_DIR)
 for item in LIST_OF_CLASSES:
   url = 'gs://quickdraw_dataset/full/binary/' + item + '.bin'
+  print(url)  
   dest = ROOT_DIR + item + '.bin'
-  subprocess.run(f"gsutil -m cp {url} {dest}", shell=True)
+  subprocess.run(f"gsutil -m cp '{url}' '{dest}'", shell=True)
   drawings = unpack_drawings(dest)
   train, val, test = sample_drawings(drawings, NUM_TRAIN, NUM_VAL, NUM_TEST)
 
@@ -94,7 +161,7 @@ for item in LIST_OF_CLASSES:
   pack_drawings(train_file, train)
   pack_drawings(val_file, val)
   pack_drawings(test_file, test)
-  subprocess.run(f"rm {dest}", shell=True)
+  subprocess.run(f"rm '{dest}'", shell=True)
 
 #-----------------------------------------------------------------
 
@@ -147,46 +214,38 @@ transforms_tensor = T.ToTensor()
 
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform(vector_img, is_test):
-  raster = vector_to_raster(vector_img)
+    raster = vector_to_raster(vector_img)
 
-  # add rotations and translations at test time
-  if is_test: 
+  # add rotations and translations
     raster = transforms_tensor(raster.astype(np.float32))
-
-    angle = random.random()*60 - 30
-    deltaX = random.randint(-3, 3)
-    deltaY = random.randint(-3, 3)
+    if is_test:
+        angle = random.random()*60 - 30
+        deltaX = random.randint(-3, 3)
+        deltaY = random.randint(-3, 3)
+    else:
+        angle = random.random()*30 - 30
+        deltaX = random.randint(-3, 0)
+        deltaY = random.randint(-3, 0)
 
     raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
                                  interpolation=T.InterpolationMode.BILINEAR)
     raster = np.squeeze(raster.numpy()).astype(np.uint8)
   
-  raster_binary = cv2.threshold(raster, 100, 255, cv2.THRESH_BINARY)[1]
-  contours, hierarchy = cv2.findContours(raster_binary, 
-                                         cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-  
-  largest_size = 0
-  largest_index = 0
-  for k, contour in enumerate(contours):
-      if len(contour) > largest_size:
-        largest_size = len(contour)
-        largest_index = k
+    raster_binary = cv2.threshold(raster, 100, 255, cv2.THRESH_BINARY)[1]
+    contours, hierarchy = cv2.findContours(raster_binary, 
+                                            cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    
+    largest_size = 0
+    largest_index = 0
+    for k, contour in enumerate(contours):
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = k
 
-  contour = np.asarray(contours[largest_index]).squeeze()
-
-  coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
-  return coeffs
+    contour = np.asarray(contours[largest_index]).squeeze()
+    coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
 
 #-----------------------------------------------------------------
-
-# helper method to find class based on imgset index
-def find_class(idx, num_list):
-  class_id = 0
-  sum = num_list[class_id]
-  while idx >= sum:
-    class_id += 1
-    sum += num_list[class_id]
-  return class_id
 
 # helper func for removing bad imgs
 def remove_bad_imgs(imgset, is_test):
@@ -207,17 +266,18 @@ def remove_bad_imgs(imgset, is_test):
 
 # remove bad imgs from dataset
 random.seed(RAND_SEED)
-for item in LIST_OF_CLASSES:
-  print(item)
-  folder = TRAIN_DIR + item + '.bin'
-  drawings = unpack_drawings(folder)
-  drawings = remove_bad_imgs(drawings, False)
-  pack_drawings(folder, drawings)
-  folder = VAL_DIR + item + '.bin'
-  drawings = unpack_drawings(folder)
-  drawings = remove_bad_imgs(drawings, False)
-  pack_drawings(folder, drawings)
-  folder = TEST_DIR + item + '.bin'
-  drawings = unpack_drawings(folder)
-  drawings = remove_bad_imgs(drawings, True)
-  pack_drawings(folder, drawings)
+for i in range(5):
+    for item in LIST_OF_CLASSES:
+        print(item)
+        folder = TRAIN_DIR + item + '.bin'
+        drawings = unpack_drawings(folder)
+        drawings = remove_bad_imgs(drawings, False)
+        pack_drawings(folder, drawings)
+        folder = VAL_DIR + item + '.bin'
+        drawings = unpack_drawings(folder)
+        drawings = remove_bad_imgs(drawings, False)
+        pack_drawings(folder, drawings)
+        folder = TEST_DIR + item + '.bin'
+        drawings = unpack_drawings(folder)
+        drawings = remove_bad_imgs(drawings, True)
+        pack_drawings(folder, drawings)

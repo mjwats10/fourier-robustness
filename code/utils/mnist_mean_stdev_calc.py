@@ -14,16 +14,9 @@ if SERVER == "apg":
 else:
     MNIST_DATA = '/home/matt/fourier/mnist'
 FOURIER_ORDER = 20
-BATCH_SIZE = 60000
 RAND_SEED = 0
-
-# function to ensure deterministic worker re-seeding for reproduceability
-def seed_worker(worker_id):
-    worker_seed = torch.initial_seed() % 2**32
-    np.random.seed(worker_seed)
-    random.seed(worker_seed)
   
-# transform function - normalize img
+# transform function
 def transform_train(img):
     raster = np.asarray(img) # convert PIL image to numpy array for openCV
     ret, raster = cv2.threshold(raster, 100, 255, cv2.THRESH_BINARY) # binarize image
@@ -42,7 +35,7 @@ def transform_train(img):
     contour = np.squeeze(contours[largest_index])
     sketch_center = pyefd.calculate_dc_coefficients(contour)
     coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
-    return torch.from_numpy(coeffs).float()
+    return coeffs
 
 
 # seed RNGs
