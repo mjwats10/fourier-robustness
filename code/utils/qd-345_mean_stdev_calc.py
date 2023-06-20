@@ -9,11 +9,11 @@ import struct
 from struct import unpack
 
 IMG_SIDE = 256
+PADDING = 62 if IMG_SIDE == 256 else 96
 NUM_CLASSES = 345
 FOURIER_ORDER = 20
-TRAIN_DATA = '/home/apg/Desktop/mw/fourier/qd-345/train/'
+TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
 
-train_imgs = []
 list_of_classes = ["The Eiffel Tower", "The Great Wall of China", "The Mona Lisa",
                    "aircraft carrier", "airplane", "alarm clock", "ambulance", 
                    "angel", "animal migration", "ant", "anvil", "apple", "arm", "asparagus", 
@@ -105,7 +105,7 @@ def unpack_drawings(filename):
   return imageset
 
 # convert raw vector image to single raster image
-def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=80, bg_color=(0,0,0), fg_color=(1,1,1)):
+def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=PADDING, bg_color=(0,0,0), fg_color=(1,1,1)):
   """
   padding and line_diameter are relative to the original 256x256 image.
   """
@@ -179,11 +179,11 @@ def fourier_transform(vector_img, is_test):
                                                           return_transformation=True)
       stroke_fourier_descriptors.append(coeffs.flatten())
 
-  
   return stroke_fourier_descriptors
 
 
 # load dataset
+train_imgs = []
 for item in list_of_classes:
   train_folder = TRAIN_DATA + item + '.bin'
   train_drawings = unpack_drawings(train_folder)

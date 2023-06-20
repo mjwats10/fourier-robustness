@@ -17,26 +17,29 @@ from struct import unpack
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'qd-345_shufflenet_256'
-LOAD_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
-SAVE_PATH = '/home/apg/Desktop/mw/fourier/models/' + EXP_NAME + '.pt'
-TRAIN_DATA = '/home/apg/Desktop/mw/fourier/qd-345/train/'
-TEST_DATA = '/home/apg/Desktop/mw/fourier/qd-345/test/'
-# LOG_PATH = '/home/apg/Desktop/mw/fourier/logs/' + EXP_NAME + '.txt'
+EXP_NAME = 'qd-345_baseline_cnn'
+CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
+BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
+TRAIN_DATA = '/home/matt/fourier/qd-3/train/'
+VAL_DATA = '/home/matt/fourier/qd-3/val/'
+TEST_DATA = '/home/matt/fourier/qd-3/test/'
 RAND_SEED = 0
-DEVICE = "cuda:1"
+DEVICE = "cuda:0"
 
-IMG_SIDE = 256
+IMG_SIDE = 28
+PADDING = 62 if IMG_SIDE == 256 else 96
+RAND_SEED = 0
+DEVICE = "cuda:0"
 NUM_CLASSES = 345
-EPOCHS = 10
+EPOCHS = 30 
 LEARNING_RATE = 1e-3
-BATCH_SIZE = 128
+BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
 
 #-------------------------------------------------------------------------------------------
 
 # convert raw vector image to single raster image
-def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=80, bg_color=(0,0,0), fg_color=(1,1,1)):
+def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=PADDING, bg_color=(0,0,0), fg_color=(1,1,1)):
   """
   padding and line_diameter are relative to the original 256x256 image.
   """
@@ -81,11 +84,11 @@ def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=80, 
 
 # Define transformation(s) to be applied to dataset-
 transforms_norm = T.Compose(
-      [
-          T.ToTensor(), # scales integer inputs in the range [0, 255] into the range [0.0, 1.0]
-          T.Normalize(mean=(0.138), std=(0.296)) # Quickdraw mean and stdev (35.213, 75.588), divided by 255
-      ]
-  )
+    [
+        T.ToTensor(), # scales integer inputs in the range [0, 255] into the range [0.0, 1.0]
+        T.Normalize(mean=(0.138), std=(0.296)) # Quickdraw mean and stdev (35.213, 75.588), divided by 255
+    ]
+)
 
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform(vector_img, is_test):
@@ -134,38 +137,6 @@ class QuickdrawDataset(Dataset):
     x = transform(img, self.is_test)
     y = find_class(idx, self.counts)
     return x, y
-    
-    
-# class CNN(nn.Module):
-#     def __init__(self):
-#         super(CNN, self).__init__()
-#         self.conv1 = nn.Conv2d(1, 32, 3, stride=2, padding=1)
-#         self.conv2 = nn.Conv2d(32, 32, 3, stride=2, padding=1)
-#         self.conv3 = nn.Conv2d(32, 64, 3, stride=2, padding=1)
-#         self.conv4 = nn.Conv2d(64, 64, 3, stride=2, padding=1)
-#         self.conv5 = nn.Conv2d(64, 128, 3, stride=2, padding=1)
-#         self.conv6 = nn.Conv2d(128, 128, 3, stride=2, padding=1)
-#         self.relu = nn.ReLU()
-#         self.fc1 = nn.Linear(128 * 4 * 4, 512)
-#         self.head = nn.Linear(512, NUM_CLASSES)
-# 
-#     def forward(self, x):
-#         x = self.conv1(x)
-#         x = self.relu(x)
-#         x = self.conv2(x)
-#         x = self.relu(x)
-#         x = self.conv3(x)
-#         x = self.relu(x)
-#         x = self.conv4(x)
-#         x = self.relu(x)
-#         x = self.conv5(x)
-#         x = self.relu(x)
-#         x = self.conv6(x)
-#         x = self.relu(x)
-#         x = torch.flatten(x, 1)
-#         x = self.fc1(x)
-#         x = self.relu(x)
-#         return self.head(x)
 
 
 def train_loop(dataloader, model, loss_fn, optimizer):
@@ -197,7 +168,7 @@ def train_loop(dataloader, model, loss_fn, optimizer):
       total_correct += correct
       total_loss += loss_val
       # print(f"train loss: {loss_val:>7f}   train accuracy: {correct / BATCH_SIZE:.7f}   [batch: {batch + 1:3d}/{(size // BATCH_SIZE) + 1:3d}]")      
-    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.7f}")
+    print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.4f}")
       
 def rand_test_loop(dataloader, model):
   model.eval()
@@ -205,9 +176,9 @@ def rand_test_loop(dataloader, model):
   with torch.no_grad():
     total_correct = 0
     for x, y in dataloader:
-      x, y = x.to(DEVICE), y.to(DEVICE)
+      x = x.to(DEVICE) 
       out = model(x)
-      y, out = y.to("cpu"), out.to("cpu")
+      out = out.to("cpu")
       pred = out.argmax(dim=1, keepdim=True)
       total_correct += pred.eq(y.view_as(pred)).sum().item()
 
@@ -267,8 +238,10 @@ def unpack_drawings(filename):
   return imageset
 
 train_imgs = []
+val_imgs = []
 test_imgs = []
 train_counts = []
+val_counts = []
 test_counts = []
 list_of_classes = ["The Eiffel Tower", "The Great Wall of China", "The Mona Lisa",
                    "aircraft carrier", "airplane", "alarm clock", "ambulance", 
@@ -340,14 +313,18 @@ list_of_classes = ["The Eiffel Tower", "The Great Wall of China", "The Mona Lisa
 
 # load dataset
 for item in list_of_classes:
-  train_folder = TRAIN_DATA + item + '.bin'
-  test_folder = TEST_DATA + item + '.bin'
-  train_drawings = unpack_drawings(train_folder)
-  train_imgs += train_drawings
-  train_counts.append(len(train_drawings))
-  test_drawings = unpack_drawings(test_folder)
-  test_imgs += test_drawings
-  test_counts.append(len(test_drawings))
+    train_folder = TRAIN_DATA + item + '.bin'
+    train_drawings = unpack_drawings(train_folder)
+    train_imgs += train_drawings
+    train_counts.append(len(train_drawings))
+    val_folder = VAL_DATA + item + '.bin'
+    val_drawings = unpack_drawings(val_folder)
+    val_imgs += val_drawings
+    val_counts.append(len(val_drawings))
+    test_folder = TEST_DATA + item + '.bin'
+    test_drawings = unpack_drawings(test_folder)
+    test_imgs += test_drawings
+    test_counts.append(len(test_drawings))
   
 #-------------------------------------------------------------------------------------------
   
@@ -357,27 +334,34 @@ random.seed(RAND_SEED)
 
 # create datasets
 train_data = QuickdrawDataset(train_imgs, train_counts, is_test=False)
-rand_test_data = QuickdrawDataset(test_imgs, test_counts, is_test=True)
-# adv_test_data = QuickdrawDataset(test_imgs, test_counts, is_test=False)
+val_data = QuickdrawDataset(val_imgs, val_counts, is_test=False)
+test_data = QuickdrawDataset(test_imgs, test_counts, is_test=True)
 
 # create dataloaders
 g = torch.Generator()
 g.manual_seed(RAND_SEED)
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, worker_init_fn=seed_worker, generator=g)
-rand_test_loader = DataLoader(rand_test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
-adv_test_loader = DataLoader(adv_test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
+val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=True, worker_init_fn=seed_worker, generator=g)
+test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
 
 # init model and optimizer
 model = models.shufflenet_v2_x0_5()
-# checkpoint = torch.load(LOAD_PATH, map_location=torch.device(DEVICE))
-# model.load_state_dict(checkpoint['model_state_dict'])
-model.to(DEVICE)
+model.conv1[0] = nn.Conv2d(1, 24, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+model.fc = nn.Linear(in_features=1024, out_features=NUM_CLASSES, bias=True)
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+# checkpoint = torch.load(CHECK_PATH, map_location='cpu')
+# model.load_state_dict(checkpoint['model_state_dict'])
 # optim.load_state_dict(checkpoint['optimizer_state_dict'])
 # epoch = checkpoint['epoch']
+# best_acc = checkpoint['best_acc']
 epoch = 0
+best_acc = 0
+
+model.to(DEVICE)
 
 # train for EPOCHS number of epochs
+print(EXP_NAME)
 for i in range(epoch, EPOCHS):
     print("Epoch " + str(i + 1) + "\n")
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
@@ -385,21 +369,24 @@ for i in range(epoch, EPOCHS):
                 'epoch': i + 1,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
-                }, SAVE_PATH)
+                }, CHECK_PATH)
+    acc = rand_test_loop(dataloader=val_loader,model=model)
+    if acc > best_acc:
+        torch.save(model.state_dict(), BEST_PATH)
+        best_acc = acc
+    print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
-    
+ 
 # evaluate on random translations and rotations
 print("Evaluating against random transformations...")
+model.load_state_dict(torch.load(BEST_PATH))
 random.seed(RAND_SEED)
 accuracies = []
 for i in range(30):
-  accuracies.append(rand_test_loop(dataloader=rand_test_loader,model=model))
+    accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
 accuracies = np.asarray(accuracies)
 mean = np.mean(accuracies)
 std = np.std(accuracies)
 print(f"Mean acc: {mean:.4f}")
 print(f"Acc std: {std:.7f}")
 print("\n-------------------------------\n")
-
-# evaluate on adversarial translations and rotations
-# print("Evaluating against adversarial transformations...")

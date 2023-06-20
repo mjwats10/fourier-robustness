@@ -1,397 +1,397 @@
 qd-3_fourier_cnn5-2
 Epoch 1
 
-loss: 2.311679  [  500/29997]
-loss: 1.004882  [ 6500/29997]
-loss: 0.782171  [12500/29997]
-loss: 0.507127  [18500/29997]
-loss: 0.318188  [24500/29997]
+loss: 1.098394  [  500/29997]
+loss: 0.625841  [ 6500/29997]
+loss: 0.356745  [12500/29997]
+loss: 0.221757  [18500/29997]
+loss: 0.157759  [24500/29997]
 
-epoch avg train loss: 0.7278720   epoch avg train accuracy: 0.7130380
-best val acc: 0.9120
+epoch avg train loss: 0.3947177   epoch avg train accuracy: 0.8416842
+best val acc: 0.9410
 
 -------------------------------
 
 Epoch 2
 
-loss: 0.233923  [  500/29997]
-loss: 0.205735  [ 6500/29997]
-loss: 0.144257  [12500/29997]
-loss: 0.164080  [18500/29997]
-loss: 0.133667  [24500/29997]
+loss: 0.164228  [  500/29997]
+loss: 0.147208  [ 6500/29997]
+loss: 0.105718  [12500/29997]
+loss: 0.115092  [18500/29997]
+loss: 0.081121  [24500/29997]
 
-epoch avg train loss: 0.1736969   epoch avg train accuracy: 0.9369270
-best val acc: 0.9503
+epoch avg train loss: 0.1149363   epoch avg train accuracy: 0.9554955
+best val acc: 0.9657
 
 -------------------------------
 
 Epoch 3
 
-loss: 0.095168  [  500/29997]
-loss: 0.100120  [ 6500/29997]
-loss: 0.149041  [12500/29997]
-loss: 0.085536  [18500/29997]
-loss: 0.093356  [24500/29997]
+loss: 0.081077  [  500/29997]
+loss: 0.075116  [ 6500/29997]
+loss: 0.115110  [12500/29997]
+loss: 0.063477  [18500/29997]
+loss: 0.061653  [24500/29997]
 
-epoch avg train loss: 0.1099326   epoch avg train accuracy: 0.9575624
-best val acc: 0.9643
+epoch avg train loss: 0.0789651   epoch avg train accuracy: 0.9685635
+best val acc: 0.9737
 
 -------------------------------
 
 Epoch 4
 
-loss: 0.056036  [  500/29997]
-loss: 0.102577  [ 6500/29997]
-loss: 0.085597  [12500/29997]
-loss: 0.076781  [18500/29997]
-loss: 0.054813  [24500/29997]
+loss: 0.044955  [  500/29997]
+loss: 0.075526  [ 6500/29997]
+loss: 0.057499  [12500/29997]
+loss: 0.064564  [18500/29997]
+loss: 0.045191  [24500/29997]
 
-epoch avg train loss: 0.0848591   epoch avg train accuracy: 0.9677301
-best val acc: 0.9693
+epoch avg train loss: 0.0634746   epoch avg train accuracy: 0.9750308
+best val acc: 0.9743
 
 -------------------------------
 
 Epoch 5
 
-loss: 0.033615  [  500/29997]
-loss: 0.084982  [ 6500/29997]
-loss: 0.070848  [12500/29997]
-loss: 0.067272  [18500/29997]
-loss: 0.075453  [24500/29997]
+loss: 0.024189  [  500/29997]
+loss: 0.068536  [ 6500/29997]
+loss: 0.053598  [12500/29997]
+loss: 0.055951  [18500/29997]
+loss: 0.053543  [24500/29997]
 
-epoch avg train loss: 0.0734116   epoch avg train accuracy: 0.9728973
-best val acc: 0.9713
+epoch avg train loss: 0.0568340   epoch avg train accuracy: 0.9789979
+best val acc: 0.9743
 
 -------------------------------
 
 Epoch 6
 
-loss: 0.078566  [  500/29997]
-loss: 0.064034  [ 6500/29997]
-loss: 0.069562  [12500/29997]
-loss: 0.068662  [18500/29997]
-loss: 0.088751  [24500/29997]
+loss: 0.049622  [  500/29997]
+loss: 0.069462  [ 6500/29997]
+loss: 0.058786  [12500/29997]
+loss: 0.054775  [18500/29997]
+loss: 0.081721  [24500/29997]
 
-epoch avg train loss: 0.0626074   epoch avg train accuracy: 0.9769644
-best val acc: 0.9743
+epoch avg train loss: 0.0499099   epoch avg train accuracy: 0.9814315
+best val acc: 0.9767
 
 -------------------------------
 
 Epoch 7
 
-loss: 0.041061  [  500/29997]
-loss: 0.067506  [ 6500/29997]
-loss: 0.087258  [12500/29997]
-loss: 0.068867  [18500/29997]
-loss: 0.055168  [24500/29997]
+loss: 0.042573  [  500/29997]
+loss: 0.052599  [ 6500/29997]
+loss: 0.077308  [12500/29997]
+loss: 0.052399  [18500/29997]
+loss: 0.058139  [24500/29997]
 
-epoch avg train loss: 0.0564511   epoch avg train accuracy: 0.9796646
-best val acc: 0.9743
+epoch avg train loss: 0.0456642   epoch avg train accuracy: 0.9832983
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 8
 
-loss: 0.029786  [  500/29997]
-loss: 0.036371  [ 6500/29997]
-loss: 0.042319  [12500/29997]
-loss: 0.059755  [18500/29997]
-loss: 0.036469  [24500/29997]
+loss: 0.022219  [  500/29997]
+loss: 0.030536  [ 6500/29997]
+loss: 0.036023  [12500/29997]
+loss: 0.046028  [18500/29997]
+loss: 0.029342  [24500/29997]
 
-epoch avg train loss: 0.0510250   epoch avg train accuracy: 0.9816648
-best val acc: 0.9743
+epoch avg train loss: 0.0388886   epoch avg train accuracy: 0.9853319
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 9
 
-loss: 0.050540  [  500/29997]
-loss: 0.041954  [ 6500/29997]
-loss: 0.086090  [12500/29997]
-loss: 0.049235  [18500/29997]
-loss: 0.049938  [24500/29997]
+loss: 0.035119  [  500/29997]
+loss: 0.037243  [ 6500/29997]
+loss: 0.055444  [12500/29997]
+loss: 0.026098  [18500/29997]
+loss: 0.039219  [24500/29997]
 
-epoch avg train loss: 0.0469080   epoch avg train accuracy: 0.9822982
-best val acc: 0.9743
+epoch avg train loss: 0.0334342   epoch avg train accuracy: 0.9872987
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 10
 
-loss: 0.035827  [  500/29997]
-loss: 0.042404  [ 6500/29997]
-loss: 0.026628  [12500/29997]
-loss: 0.055031  [18500/29997]
-loss: 0.044982  [24500/29997]
+loss: 0.032929  [  500/29997]
+loss: 0.039429  [ 6500/29997]
+loss: 0.018511  [12500/29997]
+loss: 0.062325  [18500/29997]
+loss: 0.029003  [24500/29997]
 
-epoch avg train loss: 0.0408261   epoch avg train accuracy: 0.9847985
-best val acc: 0.9767
+epoch avg train loss: 0.0304276   epoch avg train accuracy: 0.9886989
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 11
 
-loss: 0.028006  [  500/29997]
-loss: 0.025496  [ 6500/29997]
-loss: 0.023919  [12500/29997]
-loss: 0.033216  [18500/29997]
-loss: 0.043768  [24500/29997]
+loss: 0.012725  [  500/29997]
+loss: 0.017423  [ 6500/29997]
+loss: 0.029768  [12500/29997]
+loss: 0.033411  [18500/29997]
+loss: 0.023236  [24500/29997]
 
-epoch avg train loss: 0.0388945   epoch avg train accuracy: 0.9850318
-best val acc: 0.9767
+epoch avg train loss: 0.0271601   epoch avg train accuracy: 0.9903990
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 12
 
-loss: 0.033741  [  500/29997]
-loss: 0.032800  [ 6500/29997]
-loss: 0.053950  [12500/29997]
-loss: 0.037981  [18500/29997]
-loss: 0.013585  [24500/29997]
+loss: 0.018425  [  500/29997]
+loss: 0.010715  [ 6500/29997]
+loss: 0.027533  [12500/29997]
+loss: 0.019313  [18500/29997]
+loss: 0.011945  [24500/29997]
 
-epoch avg train loss: 0.0341780   epoch avg train accuracy: 0.9880321
-best val acc: 0.9780
+epoch avg train loss: 0.0211135   epoch avg train accuracy: 0.9926659
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 13
 
-loss: 0.017922  [  500/29997]
-loss: 0.026957  [ 6500/29997]
-loss: 0.020315  [12500/29997]
-loss: 0.020524  [18500/29997]
-loss: 0.026806  [24500/29997]
+loss: 0.014211  [  500/29997]
+loss: 0.011782  [ 6500/29997]
+loss: 0.012450  [12500/29997]
+loss: 0.020867  [18500/29997]
+loss: 0.013163  [24500/29997]
 
-epoch avg train loss: 0.0295547   epoch avg train accuracy: 0.9897323
-best val acc: 0.9780
+epoch avg train loss: 0.0179829   epoch avg train accuracy: 0.9938994
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 14
 
-loss: 0.063367  [  500/29997]
-loss: 0.041771  [ 6500/29997]
-loss: 0.033088  [12500/29997]
-loss: 0.024389  [18500/29997]
-loss: 0.026171  [24500/29997]
+loss: 0.032546  [  500/29997]
+loss: 0.013807  [ 6500/29997]
+loss: 0.020539  [12500/29997]
+loss: 0.011847  [18500/29997]
+loss: 0.018409  [24500/29997]
 
-epoch avg train loss: 0.0290953   epoch avg train accuracy: 0.9893656
-best val acc: 0.9780
+epoch avg train loss: 0.0164082   epoch avg train accuracy: 0.9940661
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 15
 
-loss: 0.033087  [  500/29997]
-loss: 0.010987  [ 6500/29997]
-loss: 0.010280  [12500/29997]
-loss: 0.024388  [18500/29997]
-loss: 0.022007  [24500/29997]
+loss: 0.006325  [  500/29997]
+loss: 0.011898  [ 6500/29997]
+loss: 0.006574  [12500/29997]
+loss: 0.028095  [18500/29997]
+loss: 0.016498  [24500/29997]
 
-epoch avg train loss: 0.0229646   epoch avg train accuracy: 0.9922659
+epoch avg train loss: 0.0163336   epoch avg train accuracy: 0.9942661
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 16
 
-loss: 0.017874  [  500/29997]
-loss: 0.016364  [ 6500/29997]
-loss: 0.016637  [12500/29997]
-loss: 0.012174  [18500/29997]
-loss: 0.034270  [24500/29997]
+loss: 0.012311  [  500/29997]
+loss: 0.011934  [ 6500/29997]
+loss: 0.032967  [12500/29997]
+loss: 0.009127  [18500/29997]
+loss: 0.029955  [24500/29997]
 
-epoch avg train loss: 0.0228818   epoch avg train accuracy: 0.9917325
+epoch avg train loss: 0.0155461   epoch avg train accuracy: 0.9949662
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 17
 
-loss: 0.039233  [  500/29997]
-loss: 0.022521  [ 6500/29997]
-loss: 0.010814  [12500/29997]
-loss: 0.023125  [18500/29997]
-loss: 0.027451  [24500/29997]
+loss: 0.006930  [  500/29997]
+loss: 0.014338  [ 6500/29997]
+loss: 0.002080  [12500/29997]
+loss: 0.028792  [18500/29997]
+loss: 0.009600  [24500/29997]
 
-epoch avg train loss: 0.0246973   epoch avg train accuracy: 0.9909991
+epoch avg train loss: 0.0116546   epoch avg train accuracy: 0.9960663
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 18
 
-loss: 0.009499  [  500/29997]
-loss: 0.010171  [ 6500/29997]
-loss: 0.011594  [12500/29997]
-loss: 0.011758  [18500/29997]
-loss: 0.012057  [24500/29997]
+loss: 0.004376  [  500/29997]
+loss: 0.014372  [ 6500/29997]
+loss: 0.007392  [12500/29997]
+loss: 0.007156  [18500/29997]
+loss: 0.019380  [24500/29997]
 
-epoch avg train loss: 0.0159142   epoch avg train accuracy: 0.9947995
+epoch avg train loss: 0.0129651   epoch avg train accuracy: 0.9955996
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 19
 
-loss: 0.006001  [  500/29997]
-loss: 0.007301  [ 6500/29997]
-loss: 0.024874  [12500/29997]
-loss: 0.014060  [18500/29997]
-loss: 0.025185  [24500/29997]
+loss: 0.003023  [  500/29997]
+loss: 0.013200  [ 6500/29997]
+loss: 0.026831  [12500/29997]
+loss: 0.011857  [18500/29997]
+loss: 0.013334  [24500/29997]
 
-epoch avg train loss: 0.0146463   epoch avg train accuracy: 0.9950995
+epoch avg train loss: 0.0119893   epoch avg train accuracy: 0.9957996
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 20
 
-loss: 0.013699  [  500/29997]
-loss: 0.010110  [ 6500/29997]
-loss: 0.019764  [12500/29997]
-loss: 0.007516  [18500/29997]
-loss: 0.026027  [24500/29997]
+loss: 0.006974  [  500/29997]
+loss: 0.006573  [ 6500/29997]
+loss: 0.007178  [12500/29997]
+loss: 0.003521  [18500/29997]
+loss: 0.014860  [24500/29997]
 
-epoch avg train loss: 0.0131321   epoch avg train accuracy: 0.9957329
+epoch avg train loss: 0.0106842   epoch avg train accuracy: 0.9967330
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 21
 
-loss: 0.007476  [  500/29997]
-loss: 0.022678  [ 6500/29997]
-loss: 0.025363  [12500/29997]
-loss: 0.024072  [18500/29997]
-loss: 0.010450  [24500/29997]
+loss: 0.005757  [  500/29997]
+loss: 0.008366  [ 6500/29997]
+loss: 0.011240  [12500/29997]
+loss: 0.010067  [18500/29997]
+loss: 0.009250  [24500/29997]
 
-epoch avg train loss: 0.0179624   epoch avg train accuracy: 0.9938994
+epoch avg train loss: 0.0133994   epoch avg train accuracy: 0.9955996
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 22
 
-loss: 0.004781  [  500/29997]
-loss: 0.007413  [ 6500/29997]
-loss: 0.008272  [12500/29997]
-loss: 0.009531  [18500/29997]
-loss: 0.010386  [24500/29997]
+loss: 0.008095  [  500/29997]
+loss: 0.002411  [ 6500/29997]
+loss: 0.005445  [12500/29997]
+loss: 0.013877  [18500/29997]
+loss: 0.001312  [24500/29997]
 
-epoch avg train loss: 0.0095007   epoch avg train accuracy: 0.9968664
+epoch avg train loss: 0.0071392   epoch avg train accuracy: 0.9978998
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 23
 
-loss: 0.006560  [  500/29997]
-loss: 0.011178  [ 6500/29997]
-loss: 0.007868  [12500/29997]
-loss: 0.007341  [18500/29997]
-loss: 0.010997  [24500/29997]
+loss: 0.008292  [  500/29997]
+loss: 0.004960  [ 6500/29997]
+loss: 0.011524  [12500/29997]
+loss: 0.007215  [18500/29997]
+loss: 0.011583  [24500/29997]
 
-epoch avg train loss: 0.0091985   epoch avg train accuracy: 0.9969997
+epoch avg train loss: 0.0105755   epoch avg train accuracy: 0.9964663
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 24
 
-loss: 0.007313  [  500/29997]
-loss: 0.004649  [ 6500/29997]
-loss: 0.008683  [12500/29997]
-loss: 0.002938  [18500/29997]
-loss: 0.012059  [24500/29997]
+loss: 0.012882  [  500/29997]
+loss: 0.003082  [ 6500/29997]
+loss: 0.004969  [12500/29997]
+loss: 0.006226  [18500/29997]
+loss: 0.006939  [24500/29997]
 
-epoch avg train loss: 0.0081056   epoch avg train accuracy: 0.9975998
+epoch avg train loss: 0.0060739   epoch avg train accuracy: 0.9982332
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 25
 
-loss: 0.002849  [  500/29997]
-loss: 0.003593  [ 6500/29997]
-loss: 0.000844  [12500/29997]
-loss: 0.004771  [18500/29997]
-loss: 0.002558  [24500/29997]
+loss: 0.003561  [  500/29997]
+loss: 0.004606  [ 6500/29997]
+loss: 0.000920  [12500/29997]
+loss: 0.005974  [18500/29997]
+loss: 0.018320  [24500/29997]
 
-epoch avg train loss: 0.0053220   epoch avg train accuracy: 0.9983665
+epoch avg train loss: 0.0098322   epoch avg train accuracy: 0.9969997
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 26
 
-loss: 0.001590  [  500/29997]
-loss: 0.000869  [ 6500/29997]
-loss: 0.001504  [12500/29997]
-loss: 0.013026  [18500/29997]
-loss: 0.001354  [24500/29997]
+loss: 0.005728  [  500/29997]
+loss: 0.003925  [ 6500/29997]
+loss: 0.002931  [12500/29997]
+loss: 0.008877  [18500/29997]
+loss: 0.001671  [24500/29997]
 
-epoch avg train loss: 0.0054349   epoch avg train accuracy: 0.9980998
+epoch avg train loss: 0.0067297   epoch avg train accuracy: 0.9975664
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 27
 
-loss: 0.008413  [  500/29997]
-loss: 0.002835  [ 6500/29997]
-loss: 0.011296  [12500/29997]
-loss: 0.022842  [18500/29997]
-loss: 0.008471  [24500/29997]
+loss: 0.001687  [  500/29997]
+loss: 0.002597  [ 6500/29997]
+loss: 0.004737  [12500/29997]
+loss: 0.004973  [18500/29997]
+loss: 0.004219  [24500/29997]
 
-epoch avg train loss: 0.0083681   epoch avg train accuracy: 0.9970664
+epoch avg train loss: 0.0040706   epoch avg train accuracy: 0.9988332
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 28
 
-loss: 0.005068  [  500/29997]
-loss: 0.009981  [ 6500/29997]
-loss: 0.003376  [12500/29997]
-loss: 0.007852  [18500/29997]
-loss: 0.002637  [24500/29997]
+loss: 0.001051  [  500/29997]
+loss: 0.001947  [ 6500/29997]
+loss: 0.001231  [12500/29997]
+loss: 0.006948  [18500/29997]
+loss: 0.001000  [24500/29997]
 
-epoch avg train loss: 0.0067185   epoch avg train accuracy: 0.9976998
+epoch avg train loss: 0.0032544   epoch avg train accuracy: 0.9989666
 best val acc: 0.9783
 
 -------------------------------
 
 Epoch 29
 
-loss: 0.006720  [  500/29997]
-loss: 0.009271  [ 6500/29997]
-loss: 0.011352  [12500/29997]
-loss: 0.004566  [18500/29997]
-loss: 0.001366  [24500/29997]
+loss: 0.003972  [  500/29997]
+loss: 0.003724  [ 6500/29997]
+loss: 0.001327  [12500/29997]
+loss: 0.001218  [18500/29997]
+loss: 0.002851  [24500/29997]
 
-epoch avg train loss: 0.0064791   epoch avg train accuracy: 0.9977664
-best val acc: 0.9797
+epoch avg train loss: 0.0020755   epoch avg train accuracy: 0.9994666
+best val acc: 0.9783
 
 -------------------------------
 
 Epoch 30
 
-loss: 0.015840  [  500/29997]
-loss: 0.011669  [ 6500/29997]
-loss: 0.002510  [12500/29997]
-loss: 0.001793  [18500/29997]
-loss: 0.000838  [24500/29997]
+loss: 0.000517  [  500/29997]
+loss: 0.004147  [ 6500/29997]
+loss: 0.002696  [12500/29997]
+loss: 0.000160  [18500/29997]
+loss: 0.000067  [24500/29997]
 
-epoch avg train loss: 0.0078705   epoch avg train accuracy: 0.9971664
-best val acc: 0.9797
+epoch avg train loss: 0.0012600   epoch avg train accuracy: 0.9994999
+best val acc: 0.9793
 
 -------------------------------
 
 Evaluating against random transformations...
-Mean acc: 0.9749
-Acc std: 0.0016692
+Mean acc: 0.9759
+Acc std: 0.0013136
 
 -------------------------------
 

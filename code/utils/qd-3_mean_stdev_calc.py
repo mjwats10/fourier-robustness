@@ -9,7 +9,7 @@ import struct
 from struct import unpack
 
 IMG_SIDE = 28
-PADDING = 80 if IMG_SIDE == 256 else 96
+PADDING = 62 if IMG_SIDE == 256 else 96
 NUM_CLASSES = 3
 FOURIER_ORDER = 20
 TRAIN_DATA = '/home/matt/fourier/qd-3/train/'

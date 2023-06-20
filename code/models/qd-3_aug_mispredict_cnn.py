@@ -31,10 +31,10 @@ else:
     TEST_DATA = '/home/matt/fourier/qd-3/test/'
 
 IMG_SIDE = 28
-PADDING = 80 if IMG_SIDE == 256 else 96
+PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = 0
 DEVICE = "cuda:0"
-NUM_CLASSES = 10
+NUM_CLASSES = 3
 EPOCHS = 30 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500

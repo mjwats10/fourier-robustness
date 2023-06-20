@@ -31,10 +31,10 @@ else:
     TEST_DATA = '/home/matt/fourier/qd-3/test/'
 
 IMG_SIDE = 28
-PADDING = 80 if IMG_SIDE == 256 else 96
+PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = 0
 DEVICE = "cuda:0"
-NUM_CLASSES = 10
+NUM_CLASSES = 3
 EPOCHS = 30 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
@@ -94,11 +94,11 @@ def seed_worker(worker_id):
 
 # Define transformation(s) to be applied to dataset-
 transforms_norm = T.Compose(
-      [
-          T.ToTensor(), # scales integer inputs in the range [0, 255] into the range [0.0, 1.0]
-          T.Normalize(mean=(0.138), std=(0.296)) # Quickdraw mean and stdev (35.213, 75.588), divided by 255
-      ]
-  )
+    [
+        T.ToTensor(), # scales integer inputs in the range [0, 255] into the range [0.0, 1.0]
+        T.Normalize(mean=(0.138), std=(0.296)) # Quickdraw mean and stdev (35.213, 75.588), divided by 255
+    ]
+)
   
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform(vector_img, is_test):
