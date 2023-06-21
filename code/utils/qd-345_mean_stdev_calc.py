@@ -152,7 +152,7 @@ def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=PADD
   return stroke_rasters
   
 # transform functions - take sketch image, return torch tensor of descriptors
-def fourier_transform(vector_img, is_test):
+def fourier_transform(vector_img):
   stroke_rasters = vector_to_raster(vector_img)
   
   stroke_rasters_binary = []
@@ -177,7 +177,7 @@ def fourier_transform(vector_img, is_test):
                                                           order=FOURIER_ORDER, 
                                                           normalize=True,
                                                           return_transformation=True)
-      stroke_fourier_descriptors.append(coeffs.flatten())
+      stroke_fourier_descriptors.append(coeffs)
 
   return stroke_fourier_descriptors
 
@@ -191,7 +191,7 @@ for item in list_of_classes:
 
 fourier_descriptors = []
 for img in train_imgs:
-  fourier_descriptors += fourier_transform(img, False)
+  fourier_descriptors += fourier_transform(img)
 
 fourier_descriptors = np.stack(fourier_descriptors)
 mean = np.mean(fourier_descriptors, axis=0)

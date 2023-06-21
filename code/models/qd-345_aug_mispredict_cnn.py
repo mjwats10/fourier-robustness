@@ -17,7 +17,7 @@ from struct import unpack
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'qd-345_baseline_cnn'
+EXP_NAME = 'qd-345_aug_mispredict_cnn'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
 TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
@@ -31,7 +31,7 @@ PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = 0
 DEVICE = "cuda:0"
 NUM_CLASSES = 345
-EPOCHS = 90 
+EPOCHS = 90
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
@@ -92,18 +92,23 @@ transforms_norm = T.Compose(
 
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform(vector_img, is_test):
-  raster = vector_to_raster(vector_img)
-  raster = transforms_norm(raster)
+    raster = vector_to_raster(vector_img)
+    raster = transforms_norm(raster)
 
-  # add rotations and translations at test time
-  if is_test: 
-    angle = random.random()*60 - 30
-    deltaX = random.randint(-10, 10)
-    deltaY = random.randint(-10, 10)
-
-    raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
-                                 interpolation=T.InterpolationMode.BILINEAR)
-  return raster
+    # add rotations and translations at test time
+    if is_test: 
+        angle = random.random()*30 
+        deltaX = random.randint(0, 10)
+        deltaY = random.randint(0, 10)
+        raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
+                                     interpolation=T.InterpolationMode.BILINEAR)
+    else:  
+        angle = random.random()*30 - 30
+        deltaX = random.randint(-10, 0)
+        deltaY = random.randint(-10, 0)
+        raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
+                                     interpolation=T.InterpolationMode.BILINEAR)
+    return raster
 
 # helper method to find class based on imgset index
 def find_class(idx, count_list):
