@@ -23,9 +23,9 @@ from torch_geometric.nn import global_mean_pool
 EXP_NAME = 'qd-345_four_mispredict_gnn'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = '/home/matt/fourier/qd-3/train/'
-VAL_DATA = '/home/matt/fourier/qd-3/val/'
-TEST_DATA = '/home/matt/fourier/qd-3/test/'
+TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
+VAL_DATA = '/home/matt/fourier/qd-345/val/'
+TEST_DATA = '/home/matt/fourier/qd-345/test/'
 RAND_SEED = 0
 DEVICE = "cuda:0"
 
@@ -153,7 +153,7 @@ means = np.asarray([[ 1.00000000e+00,  1.71533837e-19,  2.02469755e-19, -4.55006
  [ 2.49116020e-04, -6.19866431e-06, -2.29169767e-06, -2.85349619e-04],
  [-1.85501339e-06, -7.55794125e-06, -1.87815600e-06,  8.65967382e-06]])
 
-stdev = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.77546598e-01],
+stdevs = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.77546598e-01],
  [1.38050119e-01, 1.49582106e-01, 3.61332724e-01, 1.18704408e-01],
  [1.09599799e-01, 5.09026139e-02, 7.12521591e-02, 5.82314524e-02],
  [4.35713125e-02, 4.16378369e-02, 4.93126833e-02, 3.00215217e-02],
@@ -176,7 +176,7 @@ stdev = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.77546598e
 
 # transform functions - take sketch image, return torch tensor of descriptors
 def fourier_transform(vector_img, is_test):
-  stroke_rasters = vector_to_raster(vector_img)
+    stroke_rasters = vector_to_raster(vector_img)
 
   # add rotations and translations at test time
     stroke_rasters = np.stack(stroke_rasters)
@@ -215,23 +215,23 @@ def fourier_transform(vector_img, is_test):
         largest_index = 0
         for k, contour in enumerate(contours):
             if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = k
+                largest_size = len(contour)
+                largest_index = k
 
         if largest_size > 1:
-        contour = np.asarray(contours[largest_index]).squeeze()
-        coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, 
-                                                            order=FOURIER_ORDER, 
-                                                            normalize=True,
-                                                            return_transformation=True)
-        stroke_angle = transform[1]
-        coeffs = (coeffs - means[:FOURIER_ORDER]) / stdevs[:FOURIER_ORDER]
-        stroke_fourier_descriptors.append(coeffs.flatten())
-        stroke_angles.append(stroke_angle)
-        stroke_center = pyefd.calculate_dc_coefficients(contour)
-        stroke_centers.append(stroke_center)
+            contour = np.asarray(contours[largest_index]).squeeze()
+            coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, 
+                                                                order=FOURIER_ORDER, 
+                                                                normalize=True,
+                                                                return_transformation=True)
+            stroke_angle = transform[1]
+            coeffs = (coeffs - means[:FOURIER_ORDER]) / stdevs[:FOURIER_ORDER]
+            stroke_fourier_descriptors.append(coeffs.flatten())
+            stroke_angles.append(stroke_angle)
+            stroke_center = pyefd.calculate_dc_coefficients(contour)
+            stroke_centers.append(stroke_center)
         else:
-        strokes_to_remove.append(i)
+            strokes_to_remove.append(i)
 
     for i in reversed(strokes_to_remove):
         del stroke_rasters_binary[i]

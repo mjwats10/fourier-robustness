@@ -23,9 +23,9 @@ from torch_geometric.nn import global_mean_pool
 EXP_NAME = 'qd-345_fourier_gnn'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = '/home/matt/fourier/qd-3/train/'
-VAL_DATA = '/home/matt/fourier/qd-3/val/'
-TEST_DATA = '/home/matt/fourier/qd-3/test/'
+TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
+VAL_DATA = '/home/matt/fourier/qd-345/val/'
+TEST_DATA = '/home/matt/fourier/qd-345/test/'
 RAND_SEED = 0
 DEVICE = "cuda:0"
 
@@ -153,7 +153,7 @@ means = np.asarray([[ 1.00000000e+00,  1.71533837e-19,  2.02469755e-19, -4.55006
  [ 2.49116020e-04, -6.19866431e-06, -2.29169767e-06, -2.85349619e-04],
  [-1.85501339e-06, -7.55794125e-06, -1.87815600e-06,  8.65967382e-06]])
 
-stdev = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.77546598e-01],
+stdevs = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.77546598e-01],
  [1.38050119e-01, 1.49582106e-01, 3.61332724e-01, 1.18704408e-01],
  [1.09599799e-01, 5.09026139e-02, 7.12521591e-02, 5.82314524e-02],
  [4.35713125e-02, 4.16378369e-02, 4.93126833e-02, 3.00215217e-02],
@@ -266,6 +266,8 @@ class QuickdrawDataset(Dataset):
   def __getitem__(self, idx):
     img = self.imgs[idx]
     x, edge_index, edge_attr = fourier_transform(img, self.is_test)
+    print(edge_index.shape)
+    print(edge_attr.shape)
     y = find_class(idx, self.counts)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
     
