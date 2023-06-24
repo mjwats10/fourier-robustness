@@ -519,12 +519,11 @@ test_data = QuickdrawDataset(test_imgs, test_counts, is_test=True)
 g = torch.Generator()
 g.manual_seed(RAND_SEED)
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, 
-                          num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+                          num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=True, 
-                        num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+                        num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, 
-                         num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
-
+                         num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 
 # init model and optimizer
 model = GCN()

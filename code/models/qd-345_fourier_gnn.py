@@ -266,8 +266,6 @@ class QuickdrawDataset(Dataset):
   def __getitem__(self, idx):
     img = self.imgs[idx]
     x, edge_index, edge_attr = fourier_transform(img, self.is_test)
-    print(edge_index.shape)
-    print(edge_attr.shape)
     y = find_class(idx, self.counts)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
     
@@ -515,11 +513,11 @@ test_data = QuickdrawDataset(test_imgs, test_counts, is_test=True)
 g = torch.Generator()
 g.manual_seed(RAND_SEED)
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, 
-                          num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+                          num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=True, 
-                        num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+                        num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, 
-                         num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+                         num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 
 
 # init model and optimizer
