@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms as T
@@ -7,6 +6,7 @@ from torchvision import models
 import random
 import cv2
 import numpy as np
+import pyefd
 import cairocffi as cairo
 import struct
 from struct import unpack
@@ -16,7 +16,7 @@ from struct import unpack
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'qd-345_baseline_cnn'
+EXP_NAME = 'qd-345_fourier_cnn_largest'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
 TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
@@ -25,7 +25,9 @@ TEST_DATA = '/home/matt/fourier/qd-345/test/'
 RAND_SEED = 0
 DEVICE = "cuda:0"
 
+FOURIER_ORDER = 1
 IMG_SIDE = 256
+IMG_CENTER = np.asarray(((IMG_SIDE - 1) / 2, (IMG_SIDE - 1) / 2))
 PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = 0
 DEVICE = "cuda:0"
@@ -89,20 +91,75 @@ transforms_norm = T.Compose(
     ]
 )
 
-# transform functions - take sketch image, return torch tensor of descriptors
-def transform(vector_img, is_test):
-  raster = vector_to_raster(vector_img)
-  raster = transforms_norm(raster)
+transforms_tensor = T.ToTensor()
 
-  # add rotations and translations at test time
-  if is_test: 
+# transform function
+def transform_train(vector_img):
+    raster_img = vector_to_raster(vector_img)
+    ret, raster = cv2.threshold(raster_img, 100, 255, cv2.THRESH_BINARY) # binarize image
+    contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
+    
+    # since some images have artifacts disconnected from the digit, extract only
+    # largest contour from the contour list (this should be the digit)
+    largest_size = 0
+    largest_index = 0
+    for i, contour in enumerate(contours):
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = i
+
+    # get translation and rotation offsets
+    contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
+    contour_angle = np.degrees(transform[1])
+    img_offset = (IMG_CENTER - sketch_center).round()
+
+    # de-translate then de-rotate
+    img = transforms_norm(raster_img)
+    img = T.functional.affine(img, 0, (img_offset[0], img_offset[1]), 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = T.functional.affine(img, -1 * contour_angle, [0, 0], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    return img
+
+def transform_test(vector_img):
+    # apply random corrupting transformation to input img
+    raster = vector_to_raster(vector_img)
+    img = transforms_tensor(raster.astype(np.float32))
     angle = random.random()*60 - 30
-    deltaX = random.randint(-10, 10)
-    deltaY = random.randint(-10, 10)
+    deltaX = random.randint(-3, 3)
+    deltaY = random.randint(-3, 3)
+    img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = np.squeeze(img.numpy()).astype(np.uint8)
 
-    raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
-                                 interpolation=T.InterpolationMode.BILINEAR)
-  return raster
+    ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
+    contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
+    
+    # since some images have artifacts disconnected from the digit, extract only
+    # largest contour from the contour list (this should be the digit)
+    largest_size = 0
+    largest_index = 0
+    for i, contour in enumerate(contours):
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = i
+
+    # get translation and rotation offsets
+    contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
+    contour_angle = np.degrees(transform[1])
+    img_offset = (IMG_CENTER - sketch_center).round()
+
+    # de-translate then de-rotate
+    img = transforms_norm(img)
+    img = T.functional.affine(img, 0, (img_offset[0], img_offset[1]), 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = T.functional.affine(img, -1 * contour_angle, [0, 0], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    return img
 
 # helper method to find class based on imgset index
 def find_class(idx, count_list):
@@ -133,7 +190,7 @@ class QuickdrawDataset(Dataset):
 
   def __getitem__(self, idx):
     img = self.imgs[idx]
-    x = transform(img, self.is_test)
+    x = transform_test(img) if self.is_test else transform_train(img)
     y = find_class(idx, self.counts)
     return x, y
 
