@@ -1,4 +1,3 @@
-import os
 import torch
 from torch import nn
 from torch.utils.data import Dataset
@@ -14,10 +13,6 @@ from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
-
-# Env Vars
-# torch.use_deterministic_algorithms(True)
-# torch.backends.cudnn.deterministic = True
 
 # Const vars
 EXP_NAME = 'qd-345_fourier_gnn'
@@ -205,12 +200,9 @@ def fourier_transform(vector_img, is_test):
   for i, raster in enumerate(stroke_rasters_binary):
     contours = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]
 
-    largest_size = 0
-    largest_index = 0
-    for k, contour in enumerate(contours):
-        if len(contour) > largest_size:
-          largest_size = len(contour)
-          largest_index = k
+    # extract only largest contour from the contour list
+    contour_lens = [len(contour) for contour in contours]
+    largest_index = contour_lens.index(max(contour_lens))
 
     if largest_size > 1:
       contour = np.asarray(contours[largest_index]).squeeze()
@@ -358,31 +350,6 @@ def rand_test_loop(dataloader, model):
     accuracy = total_correct / size
     return accuracy
     
-# def adv_test_loop(dataloader, model):
-#   model.eval()
-#   size = len(dataloader.dataset)
-#   with torch.no_grad():
-#     total_correct = 0
-#     for x, y in dataloader:
-#         passed = 1
-#         for dX in range(-10, 11, 5):
-#             for dY in range(-10, 11, 5):
-#                 for theta in range(-30, 31, 2):
-#                     x = T.functional.affine(x, theta, [dX, dY], 1, 0,
-#                                  interpolation=T.InterpolationMode.BILINEAR)
-#                     x = x.to(DEVICE)
-#                     out = model(x).to("cpu")
-#                     pred = out.argmax(dim=1, keepdim=True)
-#                     passed = pred.eq(y.view_as(pred)).sum().item()
-#                     if passed == 0:
-#                         break
-#                 if passed == 0:
-#                     break
-#             if passed 
-# 
-#     accuracy = total_correct / size
-#     return accuracy
-    
 #-------------------------------------------------------------------------------------------
 
 # define methods for unpacking Quickdraw .bin files
@@ -514,7 +481,7 @@ g = torch.Generator()
 g.manual_seed(RAND_SEED)
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, 
                           num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
-val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=True, 
+val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, 
                         num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, 
                          num_workers=16, pin_memory=True, worker_init_fn=seed_worker, generator=g)
@@ -529,6 +496,7 @@ optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 # optim.load_state_dict(checkpoint['optimizer_state_dict'])
 # epoch = checkpoint['epoch']
 # best_acc = checkpoint['best_acc']
+# plateau_len = checkpoint['plateau_len']
 epoch = 0
 best_acc = 0
 plateau_len = 0
@@ -544,6 +512,8 @@ for i in range(epoch, EPOCHS):
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
     torch.save({
                 'epoch': i + 1,
+                'best_acc': best_acc,
+                'plateau_len': plateau_len,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
                 }, CHECK_PATH)

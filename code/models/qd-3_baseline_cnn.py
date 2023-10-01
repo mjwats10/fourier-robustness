@@ -10,32 +10,20 @@ import struct
 from struct import unpack
 import cairocffi as cairo
 
-# Env Vars
-# torch.use_deterministic_algorithms(True)
-# torch.backends.cudnn.deterministic = True
-
 # Const vars
 EXP_NAME = 'qd-3_baseline_cnn5-2'
-SERVER = "matt"
-if SERVER == "apg":
-    CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
-    BEST_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_best.pt'
-    TRAIN_DATA = '/home/apg/mw/fourier/qd-3/train/'
-    VAL_DATA = '/home/apg/mw/fourier/qd-3/val/'
-    TEST_DATA = '/home/apg/mw/fourier/qd-3/test/'
-else:
-    CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
-    BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
-    TRAIN_DATA = '/home/matt/fourier/qd-3/train/'
-    VAL_DATA = '/home/matt/fourier/qd-3/val/'
-    TEST_DATA = '/home/matt/fourier/qd-3/test/'
+CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
+BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
+TRAIN_DATA = '/home/matt/fourier/qd-3/train/'
+VAL_DATA = '/home/matt/fourier/qd-3/val/'
+TEST_DATA = '/home/matt/fourier/qd-3/test/'
 
 IMG_SIDE = 28
 PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = 0
 DEVICE = "cuda:0"
 NUM_CLASSES = 3
-EPOCHS = 30 
+EPOCHS = 90 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
@@ -285,9 +273,12 @@ test_data = QuickdrawDataset(test_imgs, test_counts, is_test=True)
 # create generator for dataloaders and create dataloaders for each dataset
 g = torch.Generator()
 g.manual_seed(RAND_SEED)
-train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, worker_init_fn=seed_worker, generator=g)
-val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=True, worker_init_fn=seed_worker, generator=g)
-test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
+train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, 
+                          num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, 
+                        num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, 
+                         num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 
 # initalize model object and load model parameters into optimizer
 model = CNN()
@@ -298,18 +289,24 @@ optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 # optim.load_state_dict(checkpoint['optimizer_state_dict'])
 # epoch = checkpoint['epoch']
 # best_acc = checkpoint['best_acc']
+# plateau_len = checkpoint['plateau_len']
 epoch = 0
 best_acc = 0
+plateau_len = 0
 
 model.to(DEVICE)
 
 # train for EPOCHS number of epochs
 print(EXP_NAME)
 for i in range(epoch, EPOCHS):
+    if plateau_len >= 10:
+        break
     print("Epoch " + str(i + 1) + "\n")
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
     torch.save({
                 'epoch': i + 1,
+                'best_acc': best_acc,
+                'plateau_len': plateau_len,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
                 }, CHECK_PATH)
@@ -317,6 +314,9 @@ for i in range(epoch, EPOCHS):
     if acc > best_acc:
         torch.save(model.state_dict(), BEST_PATH)
         best_acc = acc
+        plateau_len = 0
+    else:
+        plateau_len += 1
     print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
  

@@ -8,21 +8,11 @@ import numpy as np
 import pyefd
 import cv2
 
-# Env Vars
-# torch.use_deterministic_algorithms(True)
-# torch.backends.cudnn.deterministic = True
-
 # Const vars
 EXP_NAME = 'mnist_four_mispredict_cnn5-2'
-SERVER = "matt"
-if SERVER == "apg":
-    CHECK_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_check.pt'
-    BEST_PATH = '/home/apg/mw/fourier/models/' + EXP_NAME + '_best.pt'
-    MNIST_DATA = '/home/apg/mw/fourier/mnist'
-else:
-    CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
-    BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
-    MNIST_DATA = '/home/matt/fourier/mnist'
+CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
+BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
+MNIST_DATA = '/home/matt/fourier/mnist'
 
 FOURIER_ORDER = 1
 IMG_SIDE = 28
@@ -30,7 +20,7 @@ IMG_CENTER = np.asarray(((IMG_SIDE - 1) / 2, (IMG_SIDE - 1) / 2))
 RAND_SEED = 0
 DEVICE = "cuda:0"
 NUM_CLASSES = 10
-EPOCHS = 30
+EPOCHS = 90
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
@@ -67,12 +57,8 @@ def transform_train(img):
     
     # since some images have artifacts disconnected from the digit, extract only
     # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
+    contour_lens = [len(contour) for contour in contours]
+    largest_index = contour_lens.index(max(contour_lens))
 
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
@@ -104,12 +90,8 @@ def transform_test(img):
     
     # since some images have artifacts disconnected from the digit, extract only
     # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
+    contour_lens = [len(contour) for contour in contours]
+    largest_index = contour_lens.index(max(contour_lens))
 
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
@@ -239,9 +221,12 @@ test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=tra
 # create generator for dataloaders and create dataloaders for each dataset
 g = torch.Generator()
 g.manual_seed(RAND_SEED)
-train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, worker_init_fn=seed_worker, generator=g)
-val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
-test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, worker_init_fn=seed_worker, generator=g)
+train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, 
+                          num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, 
+                        num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
+test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, 
+                         num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 
 # initalize model object and load model parameters into optimizer
 model = CNN()
@@ -252,18 +237,24 @@ optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 # optim.load_state_dict(checkpoint['optimizer_state_dict'])
 # epoch = checkpoint['epoch']
 # best_acc = checkpoint['best_acc']
+# plateau_len = checkpoint['plateau_len']
 epoch = 0
 best_acc = 0
+plateau_len = 0
 
 model.to(DEVICE)
 
 # train for EPOCHS number of epochs
 print(EXP_NAME)
 for i in range(epoch, EPOCHS):
+    if plateau_len >= 10:
+        break
     print("Epoch " + str(i + 1) + "\n")
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
     torch.save({
                 'epoch': i + 1,
+                'best_acc': best_acc,
+                'plateau_len': plateau_len,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
                 }, CHECK_PATH)
@@ -271,7 +262,10 @@ for i in range(epoch, EPOCHS):
     if acc > best_acc:
         torch.save(model.state_dict(), BEST_PATH)
         best_acc = acc
-    print(f"best acc: {best_acc:.4f}")
+        plateau_len = 0
+    else:
+        plateau_len += 1
+    print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
  
 # evaluate on random translations and rotations

@@ -11,10 +11,6 @@ import cairocffi as cairo
 import struct
 from struct import unpack
 
-# Env Vars
-# torch.use_deterministic_algorithms(True)
-# torch.backends.cudnn.deterministic = True
-
 # Const vars
 EXP_NAME = 'qd-345_fourier_cnn_largest'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
@@ -22,8 +18,6 @@ BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
 TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
 VAL_DATA = '/home/matt/fourier/qd-345/val/'
 TEST_DATA = '/home/matt/fourier/qd-345/test/'
-RAND_SEED = 0
-DEVICE = "cuda:0"
 
 FOURIER_ORDER = 1
 IMG_SIDE = 256
@@ -108,14 +102,9 @@ def transform_train(vector_img):
     ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
     contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
     
-    # since some images have artifacts disconnected from the digit, extract only
-    # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
+    # extract only largest contour from the contour list
+    contour_lens = [len(contour) for contour in contours]
+    largest_index = contour_lens.index(max(contour_lens))
 
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
@@ -146,14 +135,9 @@ def transform_test(vector_img):
     ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
     contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
     
-    # since some images have artifacts disconnected from the digit, extract only
-    # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
+    # extract only largest contour from the contour list
+    contour_lens = [len(contour) for contour in contours]
+    largest_index = contour_lens.index(max(contour_lens))
 
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
@@ -249,31 +233,6 @@ def rand_test_loop(dataloader, model):
 
     accuracy = total_correct / size
     return accuracy
-    
-# def adv_test_loop(dataloader, model):
-#   model.eval()
-#   size = len(dataloader.dataset)
-#   with torch.no_grad():
-#     total_correct = 0
-#     for x, y in dataloader:
-#         passed = 1
-#         for dX in range(-10, 11, 5):
-#             for dY in range(-10, 11, 5):
-#                 for theta in range(-30, 31, 2):
-#                     x = T.functional.affine(x, theta, [dX, dY], 1, 0,
-#                                  interpolation=T.InterpolationMode.BILINEAR)
-#                     x = x.to(DEVICE)
-#                     out = model(x).to("cpu")
-#                     pred = out.argmax(dim=1, keepdim=True)
-#                     passed = pred.eq(y.view_as(pred)).sum().item()
-#                     if passed == 0:
-#                         break
-#                 if passed == 0:
-#                     break
-#             if passed 
-# 
-#     accuracy = total_correct / size
-#     return accuracy
     
 #-------------------------------------------------------------------------------------------
 
@@ -407,11 +366,10 @@ g = torch.Generator()
 g.manual_seed(RAND_SEED)
 train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, 
                           num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
-val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=True, 
+val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, 
                         num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, 
                          num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
-
 
 # init model and optimizer
 model = models.shufflenet_v2_x0_5()
@@ -424,6 +382,7 @@ optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 # optim.load_state_dict(checkpoint['optimizer_state_dict'])
 # epoch = checkpoint['epoch']
 # best_acc = checkpoint['best_acc']
+# plateau_len = checkpoint['plateau_len']
 epoch = 0
 best_acc = 0
 plateau_len = 0
@@ -439,6 +398,8 @@ for i in range(epoch, EPOCHS):
     train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
     torch.save({
                 'epoch': i + 1,
+                'best_acc': best_acc,
+                'plateau_len': plateau_len,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optim.state_dict()
                 }, CHECK_PATH)
