@@ -16,7 +16,7 @@ from struct import unpack
 # torch.backends.cudnn.deterministic = True
 
 # Const vars
-EXP_NAME = 'qd-345_fourier_cnn_avg'
+EXP_NAME = 'qd-345_fourier_cnn_largest'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
 TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
@@ -95,34 +95,37 @@ transforms_tensor = T.ToTensor()
 
 # transform function
 def transform_train(vector_img):
-    raster_img = vector_to_raster(vector_img)
-    ret, raster = cv2.threshold(raster_img, 100, 255, cv2.THRESH_BINARY) # binarize image
+    # apply random corrupting transformation to input img
+    raster = vector_to_raster(vector_img)
+    img = transforms_tensor(raster.astype(np.float32))
+    angle = random.random()*30 - 30
+    deltaX = random.randint(-10, 0)
+    deltaY = random.randint(-10, 0)
+    img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
+                              interpolation=T.InterpolationMode.BILINEAR)
+    img = np.squeeze(img.numpy()).astype(np.uint8)
+
+    ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
     contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
     
-    # get contour lengths
-    contour_lens = [len(contour) for contour in contours]
-
-    # get translation and rotation offsets for each contour
-    img_offsets = []
-    contour_angles = []
+    # since some images have artifacts disconnected from the digit, extract only
+    # largest contour from the contour list (this should be the digit)
+    largest_size = 0
+    largest_index = 0
     for i, contour in enumerate(contours):
-        contour = np.squeeze(contour)
-        sketch_center = pyefd.calculate_dc_coefficients(contour)
-        coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
-        img_offset = (IMG_CENTER - sketch_center).round()
-        contour_angle = np.degrees(transform[1])
-        img_offsets.append(img_offset)
-        contour_angles.append(contour_angle)
-        
-    # average over contours
-    img_offset = np.mean(np.array(img_offsets), axis=0)
-    contour_lens = np.array(contour_lens)
-    contour_lens_norm = contour_lens / np.sum(contour_lens)
-    contour_angles = np.array(contour_angles)
-    contour_angle = np.sum(contour_lens_norm * contour_angles)
-    
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = i
+
+    # get translation and rotation offsets
+    contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
+    contour_angle = np.degrees(transform[1])
+    img_offset = (IMG_CENTER - sketch_center).round()
+
     # de-translate then de-rotate
-    img = transforms_norm(raster_img)
+    img = transforms_norm(img)
     img = T.functional.affine(img, 0, (img_offset[0], img_offset[1]), 1, 0,
                               interpolation=T.InterpolationMode.BILINEAR)
     img = T.functional.affine(img, -1 * contour_angle, [0, 0], 1, 0,
@@ -133,9 +136,9 @@ def transform_test(vector_img):
     # apply random corrupting transformation to input img
     raster = vector_to_raster(vector_img)
     img = transforms_tensor(raster.astype(np.float32))
-    angle = random.random()*60 - 30
-    deltaX = random.randint(-10, 10)
-    deltaY = random.randint(-10, 10)
+    angle = random.random()*30 
+    deltaX = random.randint(0, 10)
+    deltaY = random.randint(0, 10)
     img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
                               interpolation=T.InterpolationMode.BILINEAR)
     img = np.squeeze(img.numpy()).astype(np.uint8)
@@ -143,27 +146,21 @@ def transform_test(vector_img):
     ret, raster = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY) # binarize image
     contours, hierarchy = cv2.findContours(raster, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) # find outer contour of objects (digit) in image
     
-    # get contour lengths
-    contour_lens = [len(contour) for contour in contours]
-
-    # get translation and rotation offsets for each contour
-    img_offsets = []
-    contour_angles = []
+    # since some images have artifacts disconnected from the digit, extract only
+    # largest contour from the contour list (this should be the digit)
+    largest_size = 0
+    largest_index = 0
     for i, contour in enumerate(contours):
-        contour = np.squeeze(contour)
-        sketch_center = pyefd.calculate_dc_coefficients(contour)
-        coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
-        img_offset = (IMG_CENTER - sketch_center).round()
-        contour_angle = np.degrees(transform[1])
-        img_offsets.append(img_offset)
-        contour_angles.append(contour_angle)
-        
-    # average over contours
-    img_offset = np.mean(np.array(img_offsets), axis=0)
-    contour_lens = np.array(contour_lens)
-    contour_lens_norm = contour_lens / np.sum(contour_lens)
-    contour_angles = np.array(contour_angles)
-    contour_angle = np.sum(contour_lens_norm * contour_angles)
+        if len(contour) > largest_size:
+            largest_size = len(contour)
+            largest_index = i
+
+    # get translation and rotation offsets
+    contour = np.squeeze(contours[largest_index])
+    sketch_center = pyefd.calculate_dc_coefficients(contour)
+    coeffs, transform = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True, return_transformation=True)
+    contour_angle = np.degrees(transform[1])
+    img_offset = (IMG_CENTER - sketch_center).round()
 
     # de-translate then de-rotate
     img = transforms_norm(img)

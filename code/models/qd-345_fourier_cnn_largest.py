@@ -128,8 +128,8 @@ def transform_test(vector_img):
     raster = vector_to_raster(vector_img)
     img = transforms_tensor(raster.astype(np.float32))
     angle = random.random()*60 - 30
-    deltaX = random.randint(-3, 3)
-    deltaY = random.randint(-3, 3)
+    deltaX = random.randint(-10, 10)
+    deltaY = random.randint(-10, 10)
     img = T.functional.affine(img, angle, [deltaX, deltaY], 1, 0,
                               interpolation=T.InterpolationMode.BILINEAR)
     img = np.squeeze(img.numpy()).astype(np.uint8)
