@@ -405,16 +405,16 @@ for i in range(epoch, EPOCHS):
     print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
  
-# evaluate on random translations and rotations
-print("Evaluating against random transformations...")
-model.load_state_dict(torch.load(BEST_PATH))
-random.seed(RAND_SEED)
-accuracies = []
-for i in range(30):
-    accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
-accuracies = np.asarray(accuracies)
-mean = np.mean(accuracies)
-std = np.std(accuracies)
-print(f"Mean acc: {mean:.4f}")
-print(f"Acc std: {std:.7f}")
-print("\n-------------------------------\n")
+# # evaluate on random translations and rotations
+# print("Evaluating against random transformations...")
+# model.load_state_dict(torch.load(BEST_PATH))
+# random.seed(RAND_SEED)
+# accuracies = []
+# for i in range(30):
+#     accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
+# accuracies = np.asarray(accuracies)
+# mean = np.mean(accuracies)
+# std = np.std(accuracies)
+# print(f"Mean acc: {mean:.4f}")
+# print(f"Acc std: {std:.7f}")
+# print("\n-------------------------------\n")

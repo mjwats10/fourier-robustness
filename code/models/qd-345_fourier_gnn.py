@@ -1,3 +1,4 @@
+import argparse
 import torch
 from torch import nn
 from torch.utils.data import Dataset
@@ -14,6 +15,15 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
 
+# argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("rand_seed", type=int)
+parser.add_argument("--skip_test", action="store_true")
+parser.add_argument("f_order", type=int)
+parser.add_argument("width_mult", type=int)
+parser.add_argument("--deep", action="store_true")
+args = parser.parse_args()
+
 # Const vars
 EXP_NAME = 'qd-345_fourier_gnn'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
@@ -21,16 +31,18 @@ BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
 TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
 VAL_DATA = '/home/matt/fourier/qd-345/val/'
 TEST_DATA = '/home/matt/fourier/qd-345/test/'
-RAND_SEED = 0
-DEVICE = "cuda:0"
 
+FOURIER_ORDER = args.f_order
+RAND_SEED = args.rand_seed
+WIDTH_MULTIPLE = args.width_mult
+DEEP = args.deep
+DEVICE = "cuda:0"
 IMG_SIDE = 256
 NUM_CLASSES = 345
 EPOCHS = 90
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
-FOURIER_ORDER = 10
 EDGE_ATTR_DIM = 3
 
 #-------------------------------------------------------------------------------------------
@@ -202,7 +214,8 @@ def fourier_transform(vector_img, is_test):
 
     # extract only largest contour from the contour list
     contour_lens = [len(contour) for contour in contours]
-    largest_index = contour_lens.index(max(contour_lens))
+    largest_size = max(contour_lens)
+    largest_index = contour_lens.index(largest_size)
 
     if largest_size > 1:
       contour = np.asarray(contours[largest_index]).squeeze()
@@ -267,9 +280,9 @@ class GCN(nn.Module):
   def __init__(self):
     super(GCN, self).__init__()
     self.embedding = nn.Sequential(
-                                    nn.Linear(FOURIER_ORDER*4, 512),
+                                    nn.Linear(FOURIER_ORDER*4, WIDTH_MULTIPLE*512),
                                     nn.ReLU(),
-                                    nn.Linear(512, 512),
+                                    nn.Linear(WIDTH_MULTIPLE*512, WIDTH_MULTIPLE*512),
                                     nn.ReLU(),
                                 )
     self.edge_proj = nn.Sequential(
@@ -279,11 +292,14 @@ class GCN(nn.Module):
                                 nn.Sigmoid()
                             )
     self.relu = nn.ReLU()
-    self.conv6 = GCNConv(512, 1024)
-    self.conv7 = GCNConv(1024, 1024)
-    self.conv8 = GCNConv(1024, 1024)
-    self.fc1 = nn.Linear(1024, 2048)
-    self.head = nn.Linear(2048, NUM_CLASSES)
+    self.conv1 = GCNConv(WIDTH_MULTIPLE*512, WIDTH_MULTIPLE*1024)
+    self.conv2 = GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
+    self.conv3= GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
+    self.conv4 = GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
+    self.conv5 = GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
+    self.conv6= GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
+    self.fc1 = nn.Linear(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*2048)
+    self.head = nn.Linear(WIDTH_MULTIPLE*2048, NUM_CLASSES)
 
   def forward(self, data):
     x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
@@ -292,12 +308,19 @@ class GCN(nn.Module):
       edge_attr = edge_attr.squeeze(dim=2)
     edge_weight = self.edge_proj(edge_attr)
     x = self.embedding(x)
-    x = self.conv6(x, edge_index, edge_weight)
+    x = self.conv1(x, edge_index, edge_weight)
     x = self.relu(x)
-    x = self.conv7(x, edge_index, edge_weight)
+    x = self.conv2(x, edge_index, edge_weight)
     x = self.relu(x)
-    x = self.conv8(x, edge_index, edge_weight)
+    x = self.conv3(x, edge_index, edge_weight)
     x = self.relu(x)
+    if DEEP:
+        x = self.conv4(x, edge_index, edge_weight)
+        x = self.relu(x)
+        x = self.conv5(x, edge_index, edge_weight)
+        x = self.relu(x)
+        x = self.conv6(x, edge_index, edge_weight)
+        x = self.relu(x)
     x = global_mean_pool(x, batch)
     x = self.fc1(x)
     x = self.relu(x)
@@ -527,16 +550,17 @@ for i in range(epoch, EPOCHS):
     print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
  
-# evaluate on random translations and rotations
-print("Evaluating against random transformations...")
-model.load_state_dict(torch.load(BEST_PATH))
-random.seed(RAND_SEED)
-accuracies = []
-for i in range(30):
-  accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
-accuracies = np.asarray(accuracies)
-mean = np.mean(accuracies)
-std = np.std(accuracies)
-print(f"Mean acc: {mean:.4f}")
-print(f"Acc std: {std:.7f}")
-print("\n-------------------------------\n")
+if not args.skip_test:
+    # evaluate on random translations and rotations
+    print("Evaluating against random transformations...")
+    model.load_state_dict(torch.load(BEST_PATH))
+    random.seed(RAND_SEED)
+    accuracies = []
+    for i in range(30):
+        accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
+    accuracies = np.asarray(accuracies)
+    mean = np.mean(accuracies)
+    std = np.std(accuracies)
+    print(f"Mean acc: {mean:.4f}")
+    print(f"Acc std: {std:.7f}")
+    print("\n-------------------------------\n")

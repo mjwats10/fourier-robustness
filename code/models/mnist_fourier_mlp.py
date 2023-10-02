@@ -1,3 +1,4 @@
+import argparse
 import torch
 from torch import nn
 from torchvision import datasets, models
@@ -8,14 +9,21 @@ import numpy as np
 import pyefd
 import cv2
 
+# argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("rand_seed", type=int)
+parser.add_argument("--skip_test", action="store_true")
+parser.add_argument("f_order", type=int)
+args = parser.parse_args()
+
 # Const vars
 EXP_NAME = 'mnist_fourier_mlp'
 CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
 MNIST_DATA = '/home/matt/fourier/mnist'
 
-FOURIER_ORDER = 10
-RAND_SEED = 0
+FOURIER_ORDER = args.f_order
+RAND_SEED = args.rand_seed
 DEVICE = "cuda:0"
 NUM_CLASSES = 10
 EPOCHS = 90
@@ -265,17 +273,18 @@ for i in range(epoch, EPOCHS):
         plateau_len += 1
     print(f"best val acc: {best_acc:.4f}")
     print("\n-------------------------------\n")
- 
-# evaluate on random translations and rotations
-print("Evaluating against random transformations...")
-model.load_state_dict(torch.load(BEST_PATH))
-random.seed(RAND_SEED)
-accuracies = []
-for i in range(30):
-  accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
-accuracies = np.asarray(accuracies)
-mean = np.mean(accuracies)
-std = np.std(accuracies)
-print(f"Mean acc: {mean:.4f}")
-print(f"Acc std: {std:.7f}")
-print("\n-------------------------------\n")
+
+if not args.skip_test:
+    # evaluate on random translations and rotations
+    print("Evaluating against random transformations...")
+    model.load_state_dict(torch.load(BEST_PATH))
+    random.seed(RAND_SEED)
+    accuracies = []
+    for i in range(30):
+        accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
+    accuracies = np.asarray(accuracies)
+    mean = np.mean(accuracies)
+    std = np.std(accuracies)
+    print(f"Mean acc: {mean:.4f}")
+    print(f"Acc std: {std:.7f}")
+    print("\n-------------------------------\n")
