@@ -17,26 +17,33 @@ from torch_geometric.nn import global_mean_pool
 
 # argparse
 parser = argparse.ArgumentParser()
+parser.add_argument("root_path")
+parser.add_argument("device")
 parser.add_argument("rand_seed", type=int)
+parser.add_argument("--resume", action="store_true")
+parser.add_argument("--test_only", action="store_true")
 parser.add_argument("--skip_test", action="store_true")
 parser.add_argument("f_order", type=int)
-parser.add_argument("width_mult", type=int)
+parser.add_argument("width_mult", type=float)
 parser.add_argument("--deep", action="store_true")
+parser.add_argument("--skip_conn", action="store_true")
 args = parser.parse_args()
 
 # Const vars
 EXP_NAME = 'qd-345_fourier_gnn'
-CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
-BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
-VAL_DATA = '/home/matt/fourier/qd-345/val/'
-TEST_DATA = '/home/matt/fourier/qd-345/test/'
+ROOT_PATH = args.root_path
+CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
+BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
+TRAIN_DATA = ROOT_PATH + '/qd-345/train/'
+VAL_DATA = ROOT_PATH + '/qd-345/val/'
+TEST_DATA = ROOT_PATH + '/qd-345/test/'
 
 FOURIER_ORDER = args.f_order
 RAND_SEED = args.rand_seed
+DEVICE = args.device
 WIDTH_MULTIPLE = args.width_mult
 DEEP = args.deep
-DEVICE = "cuda:0"
+SKIP = args.skip_conn
 IMG_SIDE = 256
 NUM_CLASSES = 345
 EPOCHS = 90
@@ -275,14 +282,14 @@ class QuickdrawDataset(Dataset):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
     
 
-# pytorch-geometric GCN shallow
+# pytorch-geometric GCN
 class GCN(nn.Module):
   def __init__(self):
     super(GCN, self).__init__()
     self.embedding = nn.Sequential(
-                                    nn.Linear(FOURIER_ORDER*4, WIDTH_MULTIPLE*512),
+                                    nn.Linear(FOURIER_ORDER*4, int(WIDTH_MULTIPLE*512)),
                                     nn.ReLU(),
-                                    nn.Linear(WIDTH_MULTIPLE*512, WIDTH_MULTIPLE*512),
+                                    nn.Linear(int(WIDTH_MULTIPLE*512), int(WIDTH_MULTIPLE*512)),
                                     nn.ReLU(),
                                 )
     self.edge_proj = nn.Sequential(
@@ -292,14 +299,14 @@ class GCN(nn.Module):
                                 nn.Sigmoid()
                             )
     self.relu = nn.ReLU()
-    self.conv1 = GCNConv(WIDTH_MULTIPLE*512, WIDTH_MULTIPLE*1024)
-    self.conv2 = GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
-    self.conv3= GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
-    self.conv4 = GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
-    self.conv5 = GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
-    self.conv6= GCNConv(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*1024)
-    self.fc1 = nn.Linear(WIDTH_MULTIPLE*1024, WIDTH_MULTIPLE*2048)
-    self.head = nn.Linear(WIDTH_MULTIPLE*2048, NUM_CLASSES)
+    self.conv1 = GCNConv(int(WIDTH_MULTIPLE*512), int(WIDTH_MULTIPLE*1024))
+    self.conv2 = GCNConv(int(WIDTH_MULTIPLE*1024), int(WIDTH_MULTIPLE*1024))
+    self.conv3= GCNConv(int(WIDTH_MULTIPLE*1024), int(WIDTH_MULTIPLE*1024))
+    self.conv4 = GCNConv(int(WIDTH_MULTIPLE*1024), int(WIDTH_MULTIPLE*1024))
+    self.conv5 = GCNConv(int(WIDTH_MULTIPLE*1024), int(WIDTH_MULTIPLE*1024))
+    self.conv6= GCNConv(int(WIDTH_MULTIPLE*1024), int(WIDTH_MULTIPLE*1024))
+    self.fc1 = nn.Linear(int(WIDTH_MULTIPLE*1024), int(WIDTH_MULTIPLE*2048))
+    self.head = nn.Linear(int(WIDTH_MULTIPLE*2048), NUM_CLASSES)
 
   def forward(self, data):
     x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
@@ -313,15 +320,19 @@ class GCN(nn.Module):
     x = self.conv2(x, edge_index, edge_weight)
     x = self.relu(x)
     x = self.conv3(x, edge_index, edge_weight)
-    x = self.relu(x)
+    skip = self.relu(x)
     if DEEP:
-        x = self.conv4(x, edge_index, edge_weight)
+        x = self.conv4(skip, edge_index, edge_weight)
         x = self.relu(x)
         x = self.conv5(x, edge_index, edge_weight)
         x = self.relu(x)
         x = self.conv6(x, edge_index, edge_weight)
         x = self.relu(x)
-    x = global_mean_pool(x, batch)
+        if SKIP:
+            skip = x + skip
+        else:
+            skip = x
+    x = global_mean_pool(skip, batch)
     x = self.fc1(x)
     x = self.relu(x)
     return self.head(x)
@@ -514,41 +525,43 @@ test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False,
 model = GCN()
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-# checkpoint = torch.load(CHECK_PATH, map_location='cpu')
-# model.load_state_dict(checkpoint['model_state_dict'])
-# optim.load_state_dict(checkpoint['optimizer_state_dict'])
-# epoch = checkpoint['epoch']
-# best_acc = checkpoint['best_acc']
-# plateau_len = checkpoint['plateau_len']
 epoch = 0
 best_acc = 0
 plateau_len = 0
+if args.resume:
+    checkpoint = torch.load(CHECK_PATH, map_location='cpu')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optim.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    best_acc = checkpoint['best_acc']
+    plateau_len = checkpoint['plateau_len']
 
 model.to(DEVICE)
 
-# train for EPOCHS number of epochs
-print(EXP_NAME)
-for i in range(epoch, EPOCHS):
-    if plateau_len >= 10:
-        break
-    print("Epoch " + str(i + 1) + "\n")
-    train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
-    torch.save({
-                'epoch': i + 1,
-                'best_acc': best_acc,
-                'plateau_len': plateau_len,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optim.state_dict()
-                }, CHECK_PATH)
-    acc = rand_test_loop(dataloader=val_loader,model=model)
-    if acc > best_acc:
-        torch.save(model.state_dict(), BEST_PATH)
-        best_acc = acc
-        plateau_len = 0
-    else:
-        plateau_len += 1
-    print(f"best val acc: {best_acc:.4f}")
-    print("\n-------------------------------\n")
+if not args.test_only:
+    # train for EPOCHS number of epochs
+    print(EXP_NAME)
+    for i in range(epoch, EPOCHS):
+        if plateau_len >= 10:
+            break
+        print("Epoch " + str(i + 1) + "\n")
+        train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
+        torch.save({
+                    'epoch': i + 1,
+                    'best_acc': best_acc,
+                    'plateau_len': plateau_len,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optim.state_dict()
+                    }, CHECK_PATH)
+        acc = rand_test_loop(dataloader=val_loader,model=model)
+        if acc > best_acc:
+            torch.save(model.state_dict(), BEST_PATH)
+            best_acc = acc
+            plateau_len = 0
+        else:
+            plateau_len += 1
+        print(f"best val acc: {best_acc:.4f}")
+        print("\n-------------------------------\n")
  
 if not args.skip_test:
     # evaluate on random translations and rotations

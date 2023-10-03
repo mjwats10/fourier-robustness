@@ -15,24 +15,29 @@ import cairocffi as cairo
 
 # argparse
 parser = argparse.ArgumentParser()
+parser.add_argument("root_path")
+parser.add_argument("device")
 parser.add_argument("rand_seed", type=int)
+parser.add_argument("--resume", action="store_true")
+parser.add_argument("--test_only", action="store_true")
 parser.add_argument("--skip_test", action="store_true")
 parser.add_argument("f_order", type=int)
 args = parser.parse_args()
 
 # Const vars
 EXP_NAME = 'qd-3_fourier_mlp'
-CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
-BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = '/home/matt/fourier/qd-3/train/'
-VAL_DATA = '/home/matt/fourier/qd-3/val/'
-TEST_DATA = '/home/matt/fourier/qd-3/test/'
+ROOT_PATH = args.root_path
+CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
+BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
+TRAIN_DATA = ROOT_PATH + '/qd-3/train/'
+VAL_DATA = ROOT_PATH + '/qd-3/val/'
+TEST_DATA = ROOT_PATH + '/qd-3/test/'
 
 FOURIER_ORDER = args.f_order
 RAND_SEED = args.rand_seed
+DEVICE = args.device
 IMG_SIDE = 28
 PADDING = 62 if IMG_SIDE == 256 else 96
-DEVICE = "cuda:0"
 NUM_CLASSES = 3
 EPOCHS = 90 
 LEARNING_RATE = 1e-3
@@ -349,41 +354,43 @@ test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False,
 model = FourierMLP()
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-# checkpoint = torch.load(CHECK_PATH, map_location='cpu')
-# model.load_state_dict(checkpoint['model_state_dict'])
-# optim.load_state_dict(checkpoint['optimizer_state_dict'])
-# epoch = checkpoint['epoch']
-# best_acc = checkpoint['best_acc']
-# plateau_len = checkpoint['plateau_len']
 epoch = 0
 best_acc = 0
 plateau_len = 0
+if args.resume:
+    checkpoint = torch.load(CHECK_PATH, map_location='cpu')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optim.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    best_acc = checkpoint['best_acc']
+    plateau_len = checkpoint['plateau_len']
 
 model.to(DEVICE)
 
-# train for EPOCHS number of epochs
-print(EXP_NAME)
-for i in range(epoch, EPOCHS):
-    if plateau_len >= 10:
-        break
-    print("Epoch " + str(i + 1) + "\n")
-    train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
-    torch.save({
-                'epoch': i + 1,
-                'best_acc': best_acc,
-                'plateau_len': plateau_len,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optim.state_dict()
-                }, CHECK_PATH)
-    acc = rand_test_loop(dataloader=val_loader,model=model)
-    if acc > best_acc:
-        torch.save(model.state_dict(), BEST_PATH)
-        best_acc = acc
-        plateau_len = 0
-    else:
-        plateau_len += 1
-    print(f"best val acc: {best_acc:.4f}")
-    print("\n-------------------------------\n")
+if not args.test_only:
+    # train for EPOCHS number of epochs
+    print(EXP_NAME)
+    for i in range(epoch, EPOCHS):
+        if plateau_len >= 10:
+            break
+        print("Epoch " + str(i + 1) + "\n")
+        train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
+        torch.save({
+                    'epoch': i + 1,
+                    'best_acc': best_acc,
+                    'plateau_len': plateau_len,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optim.state_dict()
+                    }, CHECK_PATH)
+        acc = rand_test_loop(dataloader=val_loader,model=model)
+        if acc > best_acc:
+            torch.save(model.state_dict(), BEST_PATH)
+            best_acc = acc
+            plateau_len = 0
+        else:
+            plateau_len += 1
+        print(f"best val acc: {best_acc:.4f}")
+        print("\n-------------------------------\n")
  
 if not args.skip_test:
     # evaluate on random translations and rotations

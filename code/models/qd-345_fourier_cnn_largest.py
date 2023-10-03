@@ -1,3 +1,4 @@
+import argparse
 import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
@@ -11,20 +12,31 @@ import cairocffi as cairo
 import struct
 from struct import unpack
 
+# argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("root_path")
+parser.add_argument("device")
+parser.add_argument("rand_seed", type=int)
+parser.add_argument("--resume", action="store_true")
+parser.add_argument("--test_only", action="store_true")
+parser.add_argument("--skip_test", action="store_true")
+args = parser.parse_args()
+
 # Const vars
 EXP_NAME = 'qd-345_fourier_cnn_largest'
-CHECK_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_check.pt'
-BEST_PATH = '/home/matt/fourier/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = '/home/matt/fourier/qd-345/train/'
-VAL_DATA = '/home/matt/fourier/qd-345/val/'
-TEST_DATA = '/home/matt/fourier/qd-345/test/'
+ROOT_PATH = args.root_path
+CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
+BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
+TRAIN_DATA = ROOT_PATH + '/qd-345/train/'
+VAL_DATA = ROOT_PATH + '/qd-345/val/'
+TEST_DATA = ROOT_PATH + '/qd-345/test/'
 
 FOURIER_ORDER = 1
 IMG_SIDE = 256
 IMG_CENTER = np.asarray(((IMG_SIDE - 1) / 2, (IMG_SIDE - 1) / 2))
 PADDING = 62 if IMG_SIDE == 256 else 96
-RAND_SEED = 0
-DEVICE = "cuda:0"
+RAND_SEED = args.rand_seed
+DEVICE = args.device
 NUM_CLASSES = 345
 EPOCHS = 90 
 LEARNING_RATE = 1e-3
@@ -369,52 +381,55 @@ model.conv1[0] = nn.Conv2d(1, 24, kernel_size=(3, 3), stride=(2, 2), padding=(1,
 model.fc = nn.Linear(in_features=1024, out_features=NUM_CLASSES, bias=True)
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-# checkpoint = torch.load(CHECK_PATH, map_location='cpu')
-# model.load_state_dict(checkpoint['model_state_dict'])
-# optim.load_state_dict(checkpoint['optimizer_state_dict'])
-# epoch = checkpoint['epoch']
-# best_acc = checkpoint['best_acc']
-# plateau_len = checkpoint['plateau_len']
 epoch = 0
 best_acc = 0
 plateau_len = 0
+if args.resume:
+    checkpoint = torch.load(CHECK_PATH, map_location='cpu')
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optim.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    best_acc = checkpoint['best_acc']
+    plateau_len = checkpoint['plateau_len']
 
 model.to(DEVICE)
 
-# train for EPOCHS number of epochs
-print(EXP_NAME)
-for i in range(epoch, EPOCHS):
-    if plateau_len >= 10:
-        break
-    print("Epoch " + str(i + 1) + "\n")
-    train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
-    torch.save({
-                'epoch': i + 1,
-                'best_acc': best_acc,
-                'plateau_len': plateau_len,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optim.state_dict()
-                }, CHECK_PATH)
-    acc = rand_test_loop(dataloader=val_loader,model=model)
-    if acc > best_acc:
-        torch.save(model.state_dict(), BEST_PATH)
-        best_acc = acc
-        plateau_len = 0
-    else:
-        plateau_len += 1
-    print(f"best val acc: {best_acc:.4f}")
-    print("\n-------------------------------\n")
+if not args.test_only:
+    # train for EPOCHS number of epochs
+    print(EXP_NAME)
+    for i in range(epoch, EPOCHS):
+        if plateau_len >= 10:
+            break
+        print("Epoch " + str(i + 1) + "\n")
+        train_loop(dataloader=train_loader,model=model,loss_fn=LOSS_FN,optimizer=optim)
+        torch.save({
+                    'epoch': i + 1,
+                    'best_acc': best_acc,
+                    'plateau_len': plateau_len,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optim.state_dict()
+                    }, CHECK_PATH)
+        acc = rand_test_loop(dataloader=val_loader,model=model)
+        if acc > best_acc:
+            torch.save(model.state_dict(), BEST_PATH)
+            best_acc = acc
+            plateau_len = 0
+        else:
+            plateau_len += 1
+        print(f"best val acc: {best_acc:.4f}")
+        print("\n-------------------------------\n")
  
-# # evaluate on random translations and rotations
-# print("Evaluating against random transformations...")
-# model.load_state_dict(torch.load(BEST_PATH))
-# random.seed(RAND_SEED)
-# accuracies = []
-# for i in range(30):
-#     accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
-# accuracies = np.asarray(accuracies)
-# mean = np.mean(accuracies)
-# std = np.std(accuracies)
-# print(f"Mean acc: {mean:.4f}")
-# print(f"Acc std: {std:.7f}")
-# print("\n-------------------------------\n")
+if not args.skip_test:
+    # evaluate on random translations and rotations
+    print("Evaluating against random transformations...")
+    model.load_state_dict(torch.load(BEST_PATH))
+    random.seed(RAND_SEED)
+    accuracies = []
+    for i in range(30):
+        accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
+    accuracies = np.asarray(accuracies)
+    mean = np.mean(accuracies)
+    std = np.std(accuracies)
+    print(f"Mean acc: {mean:.4f}")
+    print(f"Acc std: {std:.7f}")
+    print("\n-------------------------------\n")
