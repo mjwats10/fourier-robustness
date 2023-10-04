@@ -908,3 +908,8 @@ best val acc: 0.6184
 -------------------------------
 
 Evaluating against random transformations...
+Mean acc: 0.5712
+Acc std: 0.0014386
+
+-------------------------------
+
