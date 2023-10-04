@@ -187,18 +187,18 @@ test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False,
 model = CNN()
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
+model.to(DEVICE)
+
 epoch = 0
 best_acc = 0
 plateau_len = 0
 if args.resume:
-    checkpoint = torch.load(CHECK_PATH, map_location='cpu')
+    checkpoint = torch.load(CHECK_PATH)
     model.load_state_dict(checkpoint['model_state_dict'])
     optim.load_state_dict(checkpoint['optimizer_state_dict'])
     epoch = checkpoint['epoch']
     best_acc = checkpoint['best_acc']
     plateau_len = checkpoint['plateau_len']
-
-model.to(DEVICE)
 
 if not args.test_only:
     # train for EPOCHS number of epochs

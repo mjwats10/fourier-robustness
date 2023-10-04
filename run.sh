@@ -1,17 +1,6 @@
 #!/bin/bash
 
-python -u -W ignore::UserWarning code/models/qd-345_baseline_cnn.py /home/matt/fourier cuda:0 0 | tee logs/qd-345_baseline_cnn_s0.txt
-python -u -W ignore::UserWarning code/models/qd-345_aug_cnn.py /home/matt/fourier cuda:0 0 | tee logs/qd-345_aug_cnn_s0.txt
-python -u -W ignore::UserWarning code/models/qd-345_aug_mispredict_cnn.py /home/matt/fourier cuda:0 0 | tee logs/qd-345_aug_mispredict_cnn_s0.txt
-python -u -W ignore::UserWarning code/models/qd-345_fourier_cnn_largest.py /home/matt/fourier cuda:0 0 | tee logs/qd-345_fourier_cnn_largest_s0.txt
-python -u -W ignore::UserWarning code/models/qd-345_fourier_cnn_avg.py /home/matt/fourier cuda:0 0 | tee logs/qd-345_fourier_cnn_avg_s0.txt
-python -u -W ignore::UserWarning code/models/qd-345_fourier_gnn.py /home/matt/fourier cuda:0 0 20 1.5 | tee logs/qd-345_fourier_gnn_s0.txt
-
-python -u -W ignore::UserWarning code/models/qd-345_baseline_cnn.py /home/matt/fourier cuda:0 1 | tee logs/qd-345_baseline_cnn_s1.txt
-python -u -W ignore::UserWarning code/models/qd-345_aug_cnn.py /home/matt/fourier cuda:0 1 | tee logs/qd-345_aug_cnn_s1.txt
-python -u -W ignore::UserWarning code/models/qd-345_aug_mispredict_cnn.py /home/matt/fourier cuda:0 1 | tee logs/qd-345_aug_mispredict_cnn_s1.txt
-python -u -W ignore::UserWarning code/models/qd-345_fourier_cnn_largest.py /home/matt/fourier cuda:0 1 | tee logs/qd-345_fourier_cnn_largest_s1.txt
-python -u -W ignore::UserWarning code/models/qd-345_fourier_cnn_avg.py /home/matt/fourier cuda:0 1 | tee logs/qd-345_fourier_cnn_avg_s1.txt
+python -u -W ignore::UserWarning code/models/qd-345_fourier_cnn_avg.py /home/matt/fourier cuda:0 1 --resume | tee -a logs/qd-345_fourier_cnn_avg_s1.txt
 python -u -W ignore::UserWarning code/models/qd-345_fourier_gnn.py /home/matt/fourier cuda:0 1 20 1.5 | tee logs/qd-345_fourier_gnn_s1.txt
 
 python -u -W ignore::UserWarning code/models/qd-345_baseline_cnn.py /home/matt/fourier cuda:0 2 | tee logs/qd-345_baseline_cnn_s2.txt

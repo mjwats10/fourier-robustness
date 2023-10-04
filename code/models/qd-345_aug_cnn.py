@@ -332,18 +332,18 @@ model.conv1[0] = nn.Conv2d(1, 24, kernel_size=(3, 3), stride=(2, 2), padding=(1,
 model.fc = nn.Linear(in_features=1024, out_features=NUM_CLASSES, bias=True)
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
+model.to(DEVICE)
+
 epoch = 0
 best_acc = 0
 plateau_len = 0
 if args.resume:
-    checkpoint = torch.load(CHECK_PATH, map_location='cpu')
+    checkpoint = torch.load(CHECK_PATH)
     model.load_state_dict(checkpoint['model_state_dict'])
     optim.load_state_dict(checkpoint['optimizer_state_dict'])
     epoch = checkpoint['epoch']
     best_acc = checkpoint['best_acc']
     plateau_len = checkpoint['plateau_len']
-
-model.to(DEVICE)
 
 if not args.test_only:
     # train for EPOCHS number of epochs
