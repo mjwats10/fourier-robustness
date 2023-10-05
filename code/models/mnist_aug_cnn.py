@@ -24,9 +24,9 @@ CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
 MNIST_DATA = ROOT_PATH + '/mnist'
 
-RAND_SEED = 0
 RAND_SEED = args.rand_seed
 DEVICE = args.device
+NUM_CLASSES = 10
 EPOCHS = 90 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
