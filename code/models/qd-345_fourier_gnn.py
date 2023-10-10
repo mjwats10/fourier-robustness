@@ -316,22 +316,24 @@ class GCN(nn.Module):
     edge_weight = self.edge_proj(edge_attr)
     x = self.embedding(x)
     x = self.conv1(x, edge_index, edge_weight)
-    x = self.relu(x)
-    x = self.conv2(x, edge_index, edge_weight)
+    skip = self.relu(x)
+    x = self.conv2(skip, edge_index, edge_weight)
     x = self.relu(x)
     x = self.conv3(x, edge_index, edge_weight)
-    skip = self.relu(x)
+    if SKIP:
+        skip = self.relu(x) + skip
+    else:
+        skip = self.relu(x)
     if DEEP:
         x = self.conv4(skip, edge_index, edge_weight)
         x = self.relu(x)
         x = self.conv5(x, edge_index, edge_weight)
         x = self.relu(x)
         x = self.conv6(x, edge_index, edge_weight)
-        x = self.relu(x)
         if SKIP:
-            skip = x + skip
+            skip = self.relu(x) + skip
         else:
-            skip = x
+            skip = self.relu(x)
     x = global_mean_pool(skip, batch)
     x = self.fc1(x)
     x = self.relu(x)
