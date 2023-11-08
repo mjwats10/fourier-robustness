@@ -1,18 +1,10 @@
-import torch
-from torch import nn
-from torchvision import datasets, models
-from torchvision import transforms as T
-from torch.utils.data import DataLoader
-import random
 import numpy as np
 import pyefd
 import cv2
+import os
+from code.modules import datasets
 
-SERVER = "matt"
-if SERVER == "apg":
-    MNIST_DATA = '/home/apg/mw/fourier/mnist'
-else:
-    MNIST_DATA = '/home/matt/fourier/mnist'
+MNIST_DATA = os.getcwd() + '/mnist'
 FOURIER_ORDER = 20
 RAND_SEED = 0
   
@@ -24,12 +16,8 @@ def transform_train(img):
     
     # since some images have artifacts disconnected from the digit, extract only
     # largest contour from the contour list (this should be the digit)
-    largest_size = 0
-    largest_index = 0
-    for i, contour in enumerate(contours):
-        if len(contour) > largest_size:
-            largest_size = len(contour)
-            largest_index = i
+    contour_lens = [len(contour) for contour in contours]
+    largest_index = contour_lens.index(max(contour_lens))
 
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
@@ -37,13 +25,8 @@ def transform_train(img):
     coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
     return coeffs
 
-
-# seed RNGs
-torch.manual_seed(RAND_SEED)
-random.seed(RAND_SEED)
-
 # create train, eval, and test datasets
-train_data = datasets.MNIST(root=MNIST_DATA, train=True, download=True, transform=transform_train)
+train_data = datasets.MNIST_VAL(root=MNIST_DATA, train=True, val=False, download=True, transform=transform_train)
 
 # load dataset
 fourier_descriptors = []
@@ -53,6 +36,6 @@ for (img,label) in train_data:
 fourier_descriptors = np.stack(fourier_descriptors)
 mean = np.mean(fourier_descriptors, axis=0)
 stdev = np.std(fourier_descriptors, axis=0)
-print(mean)
+print(np.array2string(mean, separator=', '))
 print('-----------------------------------')
-print(stdev)
+print(np.array2string(stdev, separator=', '))
