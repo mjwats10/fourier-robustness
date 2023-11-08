@@ -1,7 +1,7 @@
 /models
 /mnist
-/qd-3
-/qd-345
+/qd3
+/qd345
 .DS_Store
 /env
 run2.sh

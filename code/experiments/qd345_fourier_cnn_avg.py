@@ -21,13 +21,13 @@ parser.add_argument("--skip_test", action="store_true")
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'qd-345_fourier_cnn_avg_s{args.rand_seed}'
+EXP_NAME = f'qd345_fourier_cnn_avg_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
 CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = ROOT_PATH + '/qd-345/train/'
-VAL_DATA = ROOT_PATH + '/qd-345/val/'
-TEST_DATA = ROOT_PATH + '/qd-345/test/'
+TRAIN_DATA = ROOT_PATH + '/qd345/train/'
+VAL_DATA = ROOT_PATH + '/qd345/val/'
+TEST_DATA = ROOT_PATH + '/qd345/test/'
 
 FOURIER_ORDER = 1
 IMG_SIDE = 256

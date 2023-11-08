@@ -22,13 +22,13 @@ parser.add_argument("f_order", type=int)
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'qd-3_fourier_mlp_s{args.rand_seed}'
+EXP_NAME = f'qd3_fourier_mlp_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
 CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = ROOT_PATH + '/qd-3/train/'
-VAL_DATA = ROOT_PATH + '/qd-3/val/'
-TEST_DATA = ROOT_PATH + '/qd-3/test/'
+TRAIN_DATA = ROOT_PATH + '/qd3/train/'
+VAL_DATA = ROOT_PATH + '/qd3/val/'
+TEST_DATA = ROOT_PATH + '/qd3/test/'
 LOG_PATH = ROOT_PATH + '/logs/'
 
 FOURIER_ORDER = args.f_order
@@ -48,12 +48,12 @@ LOSS_FN = nn.CrossEntropyLoss()
 transforms_tensor = T.ToTensor()
 
 # get mean and stdevs of fourier coeffs
-mean_file = open(LOG_PATH + 'qd-3_means.txt', 'r')
+mean_file = open(LOG_PATH + 'qd3_means.txt', 'r')
 mean_list = ast.literal_eval(mean_file.read())
 mean_file.close()
 means = np.asarray(mean_list)
 
-stdev_file = open(LOG_PATH + 'qd-3_stdevs.txt', 'r')
+stdev_file = open(LOG_PATH + 'qd3_stdevs.txt', 'r')
 stdev_list = ast.literal_eval(stdev_file.read())
 stdev_file.close()
 stdevs = np.asarray(stdev_list)

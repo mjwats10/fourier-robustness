@@ -9,7 +9,7 @@ IMG_SIDE = 256
 PADDING = 62 if IMG_SIDE == 256 else 96
 NUM_CLASSES = 345
 FOURIER_ORDER = 20
-TRAIN_DATA = args.root_dir + '/qd-345/train/'
+TRAIN_DATA = args.root_dir + '/qd345/train/'
   
 # transform functions - take sketch image, return torch tensor of descriptors
 def fourier_transform(vector_img):

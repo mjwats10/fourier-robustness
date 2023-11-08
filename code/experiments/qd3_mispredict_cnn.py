@@ -18,13 +18,13 @@ parser.add_argument("--skip_test", action="store_true")
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'qd-3_aug_cnn_s{args.rand_seed}'
+EXP_NAME = f'qd3_mispredict_cnn_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
 CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = ROOT_PATH + '/qd-3/train/'
-VAL_DATA = ROOT_PATH + '/qd-3/val/'
-TEST_DATA = ROOT_PATH + '/qd-3/test/'
+TRAIN_DATA = ROOT_PATH + '/qd3/train/'
+VAL_DATA = ROOT_PATH + '/qd3/val/'
+TEST_DATA = ROOT_PATH + '/qd3/test/'
 
 IMG_SIDE = 28
 PADDING = 62 if IMG_SIDE == 256 else 96
@@ -51,20 +51,18 @@ def transform(vector_img, data_split):
     raster = misc.vector_to_raster(vector_img, IMG_SIDE, PADDING)
     raster = transforms_norm(raster)
 
+    # add rotations and translations
     if data_split == "train" or data_split == "val":
-        # add rotations and translations
-        angle = random.random()*60 - 30
-        deltaX = random.randint(-3, 3)
-        deltaY = random.randint(-3, 3)
-        raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
-                                    interpolation=T.InterpolationMode.BILINEAR)
+        angle = random.random()*30 - 30
+        deltaX = random.randint(3, 0)
+        deltaY = random.randint(3, 0)
     else:
-        # add rotations and translations
         angle = random.random()*30
         deltaX = random.randint(0, 3)
         deltaY = random.randint(0, 3)
-        raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
-                                    interpolation=T.InterpolationMode.BILINEAR)
+
+    raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
+                                 interpolation=T.InterpolationMode.BILINEAR)
     return raster
 
 #-------------------------------------------------------------------------------------------

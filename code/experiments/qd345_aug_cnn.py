@@ -19,20 +19,20 @@ parser.add_argument("--skip_test", action="store_true")
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'qd-345_baseline_cnn_s{args.rand_seed}'
+EXP_NAME = f'qd345_aug_cnn_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
 CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = ROOT_PATH + '/qd-345/train/'
-VAL_DATA = ROOT_PATH + '/qd-345/val/'
-TEST_DATA = ROOT_PATH + '/qd-345/test/'
+TRAIN_DATA = ROOT_PATH + '/qd345/train/'
+VAL_DATA = ROOT_PATH + '/qd345/val/'
+TEST_DATA = ROOT_PATH + '/qd345/test/'
 
 IMG_SIDE = 256
 PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = args.rand_seed
 DEVICE = args.device
 NUM_CLASSES = 345
-EPOCHS = 90 
+EPOCHS = 90
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
@@ -52,21 +52,22 @@ def transform(vector_img, data_split):
     raster = misc.vector_to_raster(vector_img, IMG_SIDE, PADDING)
     raster = transforms_norm(raster)
 
-    # add rotations and translations at test time
-    if data_split == "val": 
-        angle = random.random()*30 - 30
-        deltaX = random.randint(-10, 0)
-        deltaY = random.randint(-10, 0)
+    # add rotations and translations
+    if data_split == "train" or data_split == "val": 
+        angle = random.random()*60 - 30
+        deltaX = random.randint(-10, 10)
+        deltaY = random.randint(-10, 10)
 
         raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
                                     interpolation=T.InterpolationMode.BILINEAR)
-    elif data_split == "test":
+    else:
         angle = random.random()*30
         deltaX = random.randint(0, 10)
         deltaY = random.randint(0, 10)
 
         raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
                                     interpolation=T.InterpolationMode.BILINEAR)
+
     return raster
 
 #-------------------------------------------------------------------------------------------

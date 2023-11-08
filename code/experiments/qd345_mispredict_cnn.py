@@ -3,9 +3,10 @@ import torch
 from torch import nn
 from torchvision import transforms as T
 from torch.utils.data import DataLoader
+from torchvision import models
 import random
 import numpy as np
-from code.modules import misc, datasets, models
+from code.modules import misc, datasets
 import os
 
 # argparse
@@ -18,20 +19,20 @@ parser.add_argument("--skip_test", action="store_true")
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'qd-3_baseline_cnn_s{args.rand_seed}'
+EXP_NAME = f'qd345_mispredict_cnn_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
 CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = ROOT_PATH + '/qd-3/train/'
-VAL_DATA = ROOT_PATH + '/qd-3/val/'
-TEST_DATA = ROOT_PATH + '/qd-3/test/'
+TRAIN_DATA = ROOT_PATH + '/qd345/train/'
+VAL_DATA = ROOT_PATH + '/qd345/val/'
+TEST_DATA = ROOT_PATH + '/qd345/test/'
 
-IMG_SIDE = 28
+IMG_SIDE = 256
 PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = args.rand_seed
 DEVICE = args.device
-NUM_CLASSES = 3
-EPOCHS = 90 
+NUM_CLASSES = 345
+EPOCHS = 90
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
@@ -45,36 +46,34 @@ transforms_norm = T.Compose(
         T.Normalize(mean=(0.138), std=(0.296)) # Quickdraw mean and stdev (35.213, 75.588), divided by 255
     ]
 )
-  
+
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform(vector_img, data_split):
-    raster = misc.vector_to_raster(vector_img, IMG_SIDE, PADDING)
+    raster = vector_to_raster(vector_img)
     raster = transforms_norm(raster)
 
-    # add rotations and translations for val/test
-    if data_split == "val": 
+    # add rotations and translations at test time
+    if data_split == "train" or data_split = "val": 
         angle = random.random()*30 - 30
-        deltaX = random.randint(-3, 0)
-        deltaY = random.randint(-3, 0)
-
+        deltaX = random.randint(10, 0)
+        deltaY = random.randint(10, 0)
         raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
                                      interpolation=T.InterpolationMode.BILINEAR)
-    elif data_split == "test":
+    else:  
         angle = random.random()*30
-        deltaX = random.randint(0, 3)
-        deltaY = random.randint(0, 3)
-
+        deltaX = random.randint(0, 10)
+        deltaY = random.randint(0, 10)
         raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
                                      interpolation=T.InterpolationMode.BILINEAR)
     return raster
-
+  
 #-------------------------------------------------------------------------------------------
 
 # load dataset
 train_imgs, val_imgs, test_imgs, train_counts, val_counts, test_counts = datasets.get_data(TRAIN_DATA, VAL_DATA, TEST_DATA)
-  
-#-------------------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------------------
+  
 # seed RNGs
 torch.manual_seed(RAND_SEED)
 random.seed(RAND_SEED)
@@ -94,8 +93,10 @@ val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False,
 test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, 
                          num_workers=4, pin_memory=True, worker_init_fn=misc.seed_worker, generator=g)
 
-# initalize model object and load model parameters into optimizer
-model = models.LeNet(NUM_CLASSES)
+# init model and optimizer
+model = models.shufflenet_v2_x0_5()
+model.conv1[0] = nn.Conv2d(1, 24, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+model.fc = nn.Linear(in_features=1024, out_features=NUM_CLASSES, bias=True)
 optim = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 model.to(DEVICE)
 

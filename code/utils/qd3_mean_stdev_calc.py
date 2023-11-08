@@ -8,7 +8,7 @@ IMG_SIDE = 28
 PADDING = 62 if IMG_SIDE == 256 else 96
 NUM_CLASSES = 3
 FOURIER_ORDER = 20
-TRAIN_DATA = os.getcwd() + '/qd-3/train/'
+TRAIN_DATA = os.getcwd() + '/qd3/train/'
   
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform_train(vector_img):

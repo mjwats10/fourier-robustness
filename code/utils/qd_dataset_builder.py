@@ -19,9 +19,9 @@ args = parser.parse_args()
 # const vars
 DATASET_ID = args.dataset_id
 ROOT_DIR = os.getcwd()
-TRAIN_DIR = ROOT_DIR + f'/qd-{DATASET_ID}/train/'
-VAL_DIR = ROOT_DIR + f'/qd-{DATASET_ID}/val/'
-TEST_DIR = ROOT_DIR + f'/qd-{DATASET_ID}/test/'
+TRAIN_DIR = ROOT_DIR + f'/qd{DATASET_ID}/train/'
+VAL_DIR = ROOT_DIR + f'/qd{DATASET_ID}/val/'
+TEST_DIR = ROOT_DIR + f'/qd{DATASET_ID}/test/'
 FOURIER_ORDER = 20
 IMG_SIDE = 256 if DATASET_ID == "345" else 28
 PADDING = 62 if IMG_SIDE == 256 else 96

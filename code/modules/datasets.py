@@ -1,6 +1,6 @@
 from torchvision import datasets
 from os import listdir
-from struct import unpack, error
+from struct import pack, unpack, error
 from torch_geometric.data import Data
 from torch.utils.data import Dataset
 

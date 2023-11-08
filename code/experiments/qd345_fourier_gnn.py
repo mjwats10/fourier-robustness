@@ -25,13 +25,13 @@ parser.add_argument("--skip_conn", action="store_true")
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'qd-345_fourier_gnn_s{args.rand_seed}'
+EXP_NAME = f'qd345_fourier_gnn_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
 CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = ROOT_PATH + '/qd-345/train/'
-VAL_DATA = ROOT_PATH + '/qd-345/val/'
-TEST_DATA = ROOT_PATH + '/qd-345/test/'
+TRAIN_DATA = ROOT_PATH + '/qd345/train/'
+VAL_DATA = ROOT_PATH + '/qd345/val/'
+TEST_DATA = ROOT_PATH + '/qd345/test/'
 LOG_PATH = ROOT_PATH +'/logs/'
 
 FOURIER_ORDER = args.f_order
@@ -98,12 +98,12 @@ def get_edges(stroke_angles, stroke_centers, stroke_rasters):
   return edge_indices, edge_attr
 
 # get mean and stdevs of fourier coeffs
-mean_file = open(LOG_PATH + 'qd-345_means.txt', 'r')
+mean_file = open(LOG_PATH + 'qd345_means.txt', 'r')
 mean_list = ast.literal_eval(mean_file.read())
 mean_file.close()
 means = np.asarray(mean_list)
 
-stdev_file = open(LOG_PATH + 'qd-345_stdevs.txt', 'r')
+stdev_file = open(LOG_PATH + 'qd345_stdevs.txt', 'r')
 stdev_list = ast.literal_eval(stdev_file.read())
 stdev_file.close()
 stdevs = np.asarray(stdev_list)
