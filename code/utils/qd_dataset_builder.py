@@ -28,8 +28,8 @@ PADDING = 62 if IMG_SIDE == 256 else 96
 TRANS_DIST = 10 if IMG_SIDE == 256 else 3
 RAND_SEED = 0
 NUM_TRAIN = 1000
-NUM_VAL = 1000
-NUM_TEST = 1000
+NUM_VAL = 1000 if DATASET_ID == "345" else 100
+NUM_TEST = NUM_VAL
 LIST_OF_CLASSES = ["circle", "square", "triangle"]
 if DATASET_ID == "345":
     LIST_OF_CLASSES = ["The Eiffel Tower", "The Great Wall of China", "The Mona Lisa",
@@ -190,6 +190,7 @@ def remove_bad_imgs(imgset, data_split, class_name):
 
 # remove bad imgs from dataset
 random.seed(RAND_SEED)
+print("Searching for empty images to remove...")
 for i in range(5):
     for file_name in os.listdir(TRAIN_DIR):
         folder = TRAIN_DIR + file_name
@@ -204,3 +205,4 @@ for i in range(5):
         drawings = datasets.unpack_drawings(folder)
         drawings = remove_bad_imgs(drawings, "test", file_name[:-4])
         datasets.pack_drawings(folder, drawings)
+print("Dataset preparation complete.")

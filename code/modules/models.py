@@ -46,7 +46,7 @@ class MLP(nn.Module):
         nn.Linear(512,512),
         nn.ReLU(),
         nn.Linear(512,num_classes))
-clurrent_epoch
+
     def forward(self, x):
         x = self.flatten(x)
         out = self.mlp(x)
@@ -57,6 +57,10 @@ clurrent_epoch
 class GNN(nn.Module):
   def __init__(self, num_classes, fourier_order, width_mult, edge_attr_dim, has_skip, is_deep):
     super(GNN, self).__init__()
+    self.edge_attr_dim = edge_attr_dim
+    self.has_skip = has_skip
+    self.is_deep = is_deep
+
     self.embedding = nn.Sequential(
                                     nn.Linear(fourier_order*4, int(width_mult*512)),
                                     nn.ReLU(),
@@ -82,7 +86,7 @@ class GNN(nn.Module):
   def forward(self, data):
     x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
 
-    if edge_attr_dim > 1:
+    if self.edge_attr_dim > 1:
       edge_attr = edge_attr.squeeze(dim=2)
     edge_weight = self.edge_proj(edge_attr)
     x = self.embedding(x)
@@ -91,17 +95,17 @@ class GNN(nn.Module):
     x = self.conv2(skip, edge_index, edge_weight)
     x = self.relu(x)
     x = self.conv3(x, edge_index, edge_weight)
-    if has_skip:
+    if self.has_skip:
         skip = self.relu(x) + skip
     else:
         skip = self.relu(x)
-    if is_deep:
+    if self.is_deep:
         x = self.conv4(skip, edge_index, edge_weight)
         x = self.relu(x)
         x = self.conv5(x, edge_index, edge_weight)
         x = self.relu(x)
         x = self.conv6(x, edge_index, edge_weight)
-        if has_skip:
+        if self.has_skip:
             skip = self.relu(x) + skip
         else:
             skip = self.relu(x)

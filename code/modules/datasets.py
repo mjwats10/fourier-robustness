@@ -82,6 +82,7 @@ class QuickdrawDataset(Dataset):
         self.imgs = imgs
         self.counts = counts
         self.len = sum(counts)
+        self.transform = transform
         self.data_split = data_split
 
     def __len__(self):
@@ -89,25 +90,26 @@ class QuickdrawDataset(Dataset):
 
     def __getitem__(self, idx):
         img = self.imgs[idx]
-        x = transform(img) if self.data_split == None else transform(img, self.data_split)
+        x = self.transform(img) if self.data_split == None else self.transform(img, self.data_split)
         y = find_class(idx, self.counts)
         return x, y
 
 
 # custom dataset for quickdraw graph data
 class QuickdrawGraphDataset(Dataset):
-  def __init__(self, imgs, counts, transform, is_test):
+  def __init__(self, imgs, counts, transform, data_split):
     self.imgs = imgs
     self.counts = counts
     self.len = sum(counts)
-    self.is_test = is_test
+    self.transform = transform
+    self.data_split = data_split
 
   def __len__(self):
     return self.len
 
   def __getitem__(self, idx):
     img = self.imgs[idx]
-    x, edge_index, edge_attr = transform(img, self.is_test)
+    x, edge_index, edge_attr = self.transform(img, self.data_split)
     y = find_class(idx, self.counts)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 

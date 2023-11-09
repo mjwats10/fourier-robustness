@@ -25,10 +25,10 @@ parser.add_argument("--skip_conn", action="store_true")
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'qd345_fourier_gnn_s{args.rand_seed}'
+EXP_NAME = f'qd345_fourier_gnn_N{args.f_order}_w{args.width_mult}_deep_s{args.rand_seed}' if args.deep else f'qd345_fourier_gnn_N{args.f_order}_w{args.width_mult}_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
-CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
-BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
+CHECK_PATH = ROOT_PATH + '/models/temp/' + EXP_NAME + '_check.pt'
+BEST_PATH = ROOT_PATH + '/models/temp/' + EXP_NAME + '_best.pt'
 TRAIN_DATA = ROOT_PATH + '/qd345/train/'
 VAL_DATA = ROOT_PATH + '/qd345/val/'
 TEST_DATA = ROOT_PATH + '/qd345/test/'
@@ -216,7 +216,7 @@ model.to(DEVICE)
 current_epoch, best_acc, plateau_len = misc.get_train_state(model, optim, args.resume, CHECK_PATH)
 
 if not args.test_only:
-    misc.train(EXP_NAME, current_epoch, EPOCHS, best_acc, plateau_len, train_loader, val_loader, model, LOSS_FN, optim, CHECK_PATH, BEST_PATH, DEVICE, loop=misc.train_loop_graph)
+    misc.train_graph(EXP_NAME, current_epoch, EPOCHS, best_acc, plateau_len, train_loader, val_loader, model, LOSS_FN, optim, CHECK_PATH, BEST_PATH, DEVICE)
  
 if not args.skip_test:
-    misc.test(model, BEST_PATH, RAND_SEED, test_loader, DEVICE, loop=misc.rand_test_loop_graph)
+    misc.test_graph(model, BEST_PATH, RAND_SEED, test_loader, DEVICE)

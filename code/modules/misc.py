@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import random
 import cairocffi as cairo
+from torch_geometric.data import Data
 
 # deterministic worker re-seeding
 def seed_worker(worker_id):
@@ -10,7 +11,8 @@ def seed_worker(worker_id):
   random.seed(worker_seed)
 
 def train_loop(dataloader, model, loss_fn, optimizer, device):
-    size = len(dataloader.dataset)
+    dataset_len = len(dataloader.dataset)
+    batch_size = dataloader.batch_size
     model.train() # put the model in train mode
     total_loss = 0
     total_correct = 0
@@ -30,17 +32,18 @@ def train_loop(dataloader, model, loss_fn, optimizer, device):
       y, out, loss = y.to("cpu"), out.to("cpu"), loss.to("cpu")
       loss_val = loss.item()
       if batch % 50 == 0:
-          current = (batch + 1) * dataloader.batch_size
-          print(f"loss: {loss_val:>7f}  [{current:>5d}/{size:>5d}]")
+          current = (batch + 1) * batch_size
+          print(f"loss: {loss_val:>7f}  [{current:>5d}/{dataset_len:>5d}]")
 
       pred = out.argmax(dim=1, keepdim=True)
       correct = pred.eq(y.view_as(pred)).sum().item()
       total_correct += correct
       total_loss += loss_val
-    print(f"\nepoch avg train loss: {total_loss / ((size // batch_size) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.4f}")
+    print(f"\nepoch avg train loss: {total_loss / ((dataset_len // batch_size) + 1):.7f}   epoch avg train accuracy: {total_correct / dataset_len:.4f}")
 
 def train_loop_graph(dataloader, model, loss_fn, optimizer, device):
-    size = len(dataloader.dataset)
+    dataset_len = len(dataloader.dataset)
+    batch_size = dataloader.batch_size
     model.train() # put the model in train mode
     total_loss = 0
     total_correct = 0
@@ -60,18 +63,18 @@ def train_loop_graph(dataloader, model, loss_fn, optimizer, device):
       data, out, loss = data.to("cpu"), out.to("cpu"), loss.to("cpu")
       loss_val = loss.item()
       if batch % 50 == 0:
-          current = (batch + 1) * dataloader.batch_size
-          print(f"loss: {loss_val:>7f}  [{current:>5d}/{size:>5d}]")
+          current = (batch + 1) * batch_size
+          print(f"loss: {loss_val:>7f}  [{current:>5d}/{dataset_len:>5d}]")
 
       pred = out.argmax(dim=1, keepdim=True)
       correct = pred.eq(data.y.view_as(pred)).sum().item()
       total_correct += correct
       total_loss += loss_val 
-    print(f"\nepoch avg train loss: {total_loss / ((size // batch_size) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.4f}")
+    print(f"\nepoch avg train loss: {total_loss / ((dataset_len // batch_size) + 1):.7f}   epoch avg train accuracy: {total_correct / dataset_len:.4f}")
 
 def rand_test_loop(dataloader, model, device):
   model.eval()
-  size = len(dataloader.dataset)
+  dataset_len = len(dataloader.dataset)
   with torch.no_grad():
     total_correct = 0
     for x, y in dataloader:
@@ -81,12 +84,12 @@ def rand_test_loop(dataloader, model, device):
       pred = out.argmax(dim=1, keepdim=True)
       total_correct += pred.eq(y.view_as(pred)).sum().item()
 
-    accuracy = total_correct / size
+    accuracy = total_correct / dataset_len
     return accuracy
 
 def rand_test_loop_graph(dataloader, model, device):
   model.eval()
-  size = len(dataloader.dataset)
+  dataset_len = len(dataloader.dataset)
   with torch.no_grad():
     total_correct = 0
     for data in dataloader:
@@ -96,7 +99,7 @@ def rand_test_loop_graph(dataloader, model, device):
       pred = out.argmax(dim=1, keepdim=True)
       total_correct += pred.eq(data.y.view_as(pred)).sum().item()
 
-    accuracy = total_correct / size
+    accuracy = total_correct / dataset_len
     return accuracy
 
 # convert raw vector image to a single raster image
@@ -205,13 +208,13 @@ def get_train_state(model, optim, resume, check_path):
     return current_epoch, best_acc, plateau_len
 
 # train for 'num_epochs' number of epochs
-def train(exp_name, current_epoch, num_epochs, best_acc, plateau_len, train_loader, val_loader, model, loss_fn, optim, check_path, best_path, device, loop=train_loop):
+def train(exp_name, current_epoch, num_epochs, best_acc, plateau_len, train_loader, val_loader, model, loss_fn, optim, check_path, best_path, device):
     print(exp_name)
     for i in range(current_epoch, num_epochs):
         if plateau_len >= 10:
             break
         print("Epoch " + str(i + 1) + "\n")
-        loop(dataloader=train_loader,model=model,loss_fn=loss_fn,optimizer=optim, device=device)
+        train_loop(dataloader=train_loader,model=model,loss_fn=loss_fn,optimizer=optim, device=device)
         torch.save({
                     'epoch': i + 1,
                     'best_acc': best_acc,
@@ -219,7 +222,7 @@ def train(exp_name, current_epoch, num_epochs, best_acc, plateau_len, train_load
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optim.state_dict()
                     }, check_path)
-        acc = rand_test_loop(dataloader=val_loader,model=model)
+        acc = rand_test_loop(dataloader=val_loader, model=model, device=device)
         if acc > best_acc:
             torch.save(model.state_dict(), best_path)
             best_acc = acc
@@ -230,13 +233,53 @@ def train(exp_name, current_epoch, num_epochs, best_acc, plateau_len, train_load
         print("\n-------------------------------\n")
 
 # evaluate on random translations and rotations
-def test(model, best_path, rand_seed, test_loader, device, loop=rand_test_loop):
+def test(model, best_path, rand_seed, test_loader, device):
     print("Evaluating against random transformations...")
     model.load_state_dict(torch.load(best_path))
     random.seed(rand_seed)
     accuracies = []
     for i in range(30):
-        accuracies.append(loop(dataloader=test_loader,model=model,device=device))
+        accuracies.append(rand_test_loop(dataloader=test_loader, model=model, device=device))
+    accuracies = np.asarray(accuracies)
+    mean = np.mean(accuracies)
+    std = np.std(accuracies)
+    print(f"Mean acc: {mean:.4f}")
+    print(f"Acc std: {std:.7f}")
+    print("\n-------------------------------\n")
+
+# train for 'num_epochs' number of epochs
+def train_graph(exp_name, current_epoch, num_epochs, best_acc, plateau_len, train_loader, val_loader, model, loss_fn, optim, check_path, best_path, device):
+    print(exp_name)
+    for i in range(current_epoch, num_epochs):
+        if plateau_len >= 10:
+            break
+        print("Epoch " + str(i + 1) + "\n")
+        train_loop_graph(dataloader=train_loader,model=model,loss_fn=loss_fn,optimizer=optim, device=device)
+        torch.save({
+                    'epoch': i + 1,
+                    'best_acc': best_acc,
+                    'plateau_len': plateau_len,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optim.state_dict()
+                    }, check_path)
+        acc = rand_test_loop_graph(dataloader=val_loader, model=model, device=device)
+        if acc > best_acc:
+            torch.save(model.state_dict(), best_path)
+            best_acc = acc
+            plateau_len = 0
+        else:
+            plateau_len += 1
+        print(f"best val acc: {best_acc:.4f}")
+        print("\n-------------------------------\n")
+
+# evaluate on random translations and rotations
+def test_graph(model, best_path, rand_seed, test_loader, device):
+    print("Evaluating against random transformations...")
+    model.load_state_dict(torch.load(best_path))
+    random.seed(rand_seed)
+    accuracies = []
+    for i in range(30):
+        accuracies.append(rand_test_loop_graph(dataloader=test_loader, model=model, device=device))
     accuracies = np.asarray(accuracies)
     mean = np.mean(accuracies)
     std = np.std(accuracies)

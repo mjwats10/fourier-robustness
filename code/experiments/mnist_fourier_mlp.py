@@ -22,7 +22,7 @@ parser.add_argument("f_order", type=int)
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = f'mnist_fourier_mlp_s{args.rand_seed}'
+EXP_NAME = f'mnist_fourier_mlp_N{args.f_order}_s{args.rand_seed}'
 ROOT_PATH = os.getcwd()
 CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
