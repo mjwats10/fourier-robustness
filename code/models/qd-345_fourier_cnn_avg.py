@@ -18,7 +18,7 @@ parser.add_argument("root_path")
 parser.add_argument("device")
 parser.add_argument("rand_seed", type=int)
 parser.add_argument("--resume", action="store_true")
-parser.add_argument("--test_only", action="store_true")
+parser.add_argument("--skip_train", action="store_true")
 parser.add_argument("--skip_test", action="store_true")
 args = parser.parse_args()
 
@@ -416,7 +416,7 @@ if args.resume:
     best_acc = checkpoint['best_acc']
     plateau_len = checkpoint['plateau_len']
 
-if not args.test_only:
+if not args.skip_train:
     # train for EPOCHS number of epochs
     print(EXP_NAME)
     for i in range(epoch, EPOCHS):
