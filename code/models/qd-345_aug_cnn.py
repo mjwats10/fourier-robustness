@@ -396,12 +396,12 @@ if not args.skip_test:
     print(f"Acc std: {std:.7f}")
     print("\n-------------------------------\n")
 
-    rng = np.random.default_rng(seed=RAND_SEED)
-    worst = rng.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
-    fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
-    os.mkdir(fig_save)
-    for i in range(9):
-        plt.imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray_r',vmin=0,vmax=255)
-        plt.title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"")
-        plt.savefig(os.path.join(fig_save, str(worst[i])))
-        plt.show()
+    if RAND_SEED == 0:
+        rng = np.random.default_rng(seed=RAND_SEED)
+        worst = rng.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
+        fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
+        os.mkdir(fig_save)
+        for i in range(9):
+            plt.imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray_r',vmin=0,vmax=255)
+            plt.title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"")
+            plt.savefig(os.path.join(fig_save, str(worst[i])))

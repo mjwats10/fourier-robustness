@@ -251,12 +251,13 @@ if not args.skip_test:
     print(f"Acc std: {std:.7f}")
     print("\n-------------------------------\n")
 
-    test_imgs = MNIST_VAL(root=MNIST_DATA, train=False, download=True)
-    worst = np.argpartition(incorrect_counts, -9)[-9:]
-    fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
-    os.mkdir(fig_save)
-    for i in range(9):
-        plt.imshow(test_imgs[worst[i]][0],cmap='gray',vmin=0,vmax=255)
-        plt.title(f"\"{test_imgs[worst[i]][1]}\"")
-        plt.savefig(os.path.join(fig_save, str(worst[i])))
-        plt.show()
+    if RAND_SEED == 0:
+        test_imgs = MNIST_VAL(root=MNIST_DATA, train=False, download=True)
+        worst = np.argpartition(incorrect_counts, -9)[-9:]
+        fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
+        os.mkdir(fig_save)
+        for i in range(9):
+            plt.imshow(test_imgs[worst[i]][0],cmap='gray',vmin=0,vmax=255)
+            plt.title(f"\"{test_imgs[worst[i]][1]}\"")
+            plt.savefig(os.path.join(fig_save, str(worst[i])))
+
