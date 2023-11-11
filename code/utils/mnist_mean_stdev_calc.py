@@ -15,6 +15,7 @@ else:
     MNIST_DATA = '/home/matt/fourier/mnist'
 FOURIER_ORDER = 20
 RAND_SEED = 0
+NORM = False
   
 # transform function
 def transform_train(img):
@@ -34,7 +35,7 @@ def transform_train(img):
     # get translation and rotation offsets
     contour = np.squeeze(contours[largest_index])
     sketch_center = pyefd.calculate_dc_coefficients(contour)
-    coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=True)
+    coeffs = pyefd.elliptic_fourier_descriptors(contour, order=FOURIER_ORDER, normalize=NORM)
     return coeffs
 
 
@@ -53,6 +54,6 @@ for (img,label) in train_data:
 fourier_descriptors = np.stack(fourier_descriptors)
 mean = np.mean(fourier_descriptors, axis=0)
 stdev = np.std(fourier_descriptors, axis=0)
-print(mean)
+print(np.array2string(mean, separator=', '))
 print('-----------------------------------')
-print(stdev)
+print(np.array2string(stdev, separator=', '))

@@ -4,14 +4,11 @@ from torch import nn
 from torchvision import datasets, models
 from torchvision import transforms as T
 from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
 import random
 import numpy as np
-import struct
-from struct import unpack
-import cairocffi as cairo
 import matplotlib.pyplot as plt
 import os
+from skimage.util import random_noise
 
 # argparse
 parser = argparse.ArgumentParser()
@@ -24,69 +21,20 @@ parser.add_argument("--skip_test", action="store_true")
 args = parser.parse_args()
 
 # Const vars
-EXP_NAME = 'qd-3_aug_mispredict_cnn5-2'
+EXP_NAME = 'mnist_noise_baseline_cnn5-2'
 ROOT_PATH = args.root_path
 CHECK_PATH = ROOT_PATH + '/models/first_draft/' + EXP_NAME + '_check.pt'
 BEST_PATH = ROOT_PATH + '/models/first_draft/' + EXP_NAME + '_best.pt'
-TRAIN_DATA = ROOT_PATH + '/qd-3/train/'
-VAL_DATA = ROOT_PATH + '/qd-3/val/'
-TEST_DATA = ROOT_PATH + '/qd-3/test/'
+MNIST_DATA = ROOT_PATH + '/mnist'
 
-IMG_SIDE = 28
-PADDING = 62 if IMG_SIDE == 256 else 96
 RAND_SEED = args.rand_seed
 DEVICE = args.device
-NUM_CLASSES = 3
+NUM_CLASSES = 10
 EPOCHS = 90 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 500
 LOSS_FN = nn.CrossEntropyLoss()
-
-#-------------------------------------------------------------------------------------------
-
-# convert raw vector image to single raster image
-def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=PADDING, bg_color=(0,0,0), fg_color=(1,1,1)):
-    """
-    padding and line_diameter are relative to the original 256x256 image.
-    """
-    
-    original_side = 256.
-    
-    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, side, side)
-    ctx = cairo.Context(surface)
-    ctx.set_antialias(cairo.ANTIALIAS_BEST)
-    ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
-    ctx.set_line_width(line_diameter)
-
-    # scale to match the new size
-    # add padding at the edges for the line_diameter
-    # and add additional padding to account for antialiasing
-    total_padding = padding * 2. + line_diameter
-    new_scale = float(side) / float(original_side + total_padding)
-    ctx.scale(new_scale, new_scale)
-    ctx.translate(total_padding / 2., total_padding / 2.)
-        
-    bbox = np.hstack(vector_image).max(axis=1)
-    offset = ((original_side, original_side) - bbox) / 2.
-    offset = offset.reshape(-1,1)
-    centered = [stroke + offset for stroke in vector_image]
-
-    # clear background
-    ctx.set_source_rgb(*bg_color)
-    ctx.paint()
-
-    # draw strokes, this is the most cpu-intensive part
-    ctx.set_source_rgb(*fg_color)     
-    for xv, yv in centered:   
-        ctx.move_to(xv[0], yv[0])
-        for x, y in zip(xv, yv):
-            ctx.line_to(x, y)
-        ctx.stroke()
-
-    data = surface.get_data()
-    raster = np.copy(np.asarray(data)[::4]).reshape(side, side)
-    return raster
+RNG = np.random.default_rng(seed=RAND_SEED)
 
 # function to ensure deterministic worker re-seeding for reproduceability
 def seed_worker(worker_id):
@@ -96,57 +44,43 @@ def seed_worker(worker_id):
 
 # Define transformation(s) to be applied to dataset-
 transforms_norm = T.Compose(
-      [
-          T.ToTensor(), # scales integer inputs in the range [0, 255] into the range [0.0, 1.0]
-          T.Normalize(mean=(0.138), std=(0.296)) # Quickdraw mean and stdev (35.213, 75.588), divided by 255
-      ]
-  )
+    [
+        T.ToTensor(),
+        T.Normalize(mean = (0.1307,), std = (0.3081,)) # MNIST mean and stdev
+    ]
+)
   
 # transform functions - take sketch image, return torch tensor of descriptors
-def transform(vector_img, is_test):
-    raster = vector_to_raster(vector_img)
-    raster = transforms_norm(raster)
+def transform_train(img):
+    return transforms_norm(img)
 
-    # add rotations and translations
-    if is_test:
-        angle = random.random()*30
-        deltaX = random.randint(0, 3)
-        deltaY = random.randint(0, 3)
-    else:
-        angle = random.random()*30 - 30
-        deltaX = random.randint(-3, 0)
-        deltaY = random.randint(-3, 0)
-
-    raster = T.functional.affine(raster, angle, [deltaX, deltaY], 1, 0,
-                                 interpolation=T.InterpolationMode.BILINEAR)
-    return raster
-
-# helper method to find class based on imgset index
-def find_class(idx, count_list):
-    class_id = 0
-    sum = count_list[class_id]
-    while idx >= sum:
-        class_id += 1
-        sum += count_list[class_id]
-    return class_id
+def transform_test(img):
+    img = np.array(img)
+    img = random_noise(img, mode='salt', seed=RNG, amount=0.1)
+    return transforms_norm(img)
 
 
-# custom dataset for quickdraw
-class QuickdrawDataset(Dataset):
-    def __init__(self, imgs, counts, is_test):
-        self.imgs = imgs
-        self.counts = counts
-        self.len = sum(counts)
-        self.is_test = is_test
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):
-        img = self.imgs[idx]
-        x = transform(img, self.is_test)
-        y = find_class(idx, self.counts)
-        return x, y
+class MNIST_VAL(datasets.MNIST):
+    def __init__(
+            self, 
+            root: str, 
+            train: bool = True, 
+            val: bool = False,
+            transform = None,
+            target_transform = None,
+            download: bool = False):
+        super().__init__(
+            root,
+            train = train,
+            transform = transform,
+            target_transform = target_transform,
+            download = download)
+        if val:
+            self.data = self.data[50000:]
+            self.targets = self.targets[50000:]
+        elif train:
+            self.data = self.data[:50000]
+            self.targets = self.targets[:50000]
 
 
 class CNN(nn.Module):
@@ -232,67 +166,14 @@ def rand_test_loop(dataloader, model):
         accuracy = total_correct / size
         return accuracy, all_incorrect
 
-#-------------------------------------------------------------------------------------------
-
-# define methods for unpacking Quickdraw .bin files
-def unpack_drawing(file_handle):
-    file_handle.read(15)
-    n_strokes, = unpack('H', file_handle.read(2))
-    image = []
-    for i in range(n_strokes):
-        n_points, = unpack('H', file_handle.read(2))
-        fmt = str(n_points) + 'B'
-        x = unpack(fmt, file_handle.read(n_points))
-        y = unpack(fmt, file_handle.read(n_points))
-        image.append((x, y))
-
-    return image
-
-
-def unpack_drawings(filename):
-    imageset = []
-    with open(filename, 'rb') as f:
-        while True:
-            try:
-                imageset.append(unpack_drawing(f))
-            except struct.error:
-                break
-    return imageset
-
-# init lists
-train_imgs = []
-val_imgs = []
-test_imgs = []
-train_counts = []
-val_counts = []
-test_counts = []
-list_of_classes = ["circle", "square", "triangle"]
-
-# load dataset
-for item in list_of_classes:
-    train_folder = TRAIN_DATA + item + '.bin'
-    train_drawings = unpack_drawings(train_folder)
-    train_imgs += train_drawings
-    train_counts.append(len(train_drawings))
-    val_folder = VAL_DATA + item + '.bin'
-    val_drawings = unpack_drawings(val_folder)
-    val_imgs += val_drawings
-    val_counts.append(len(val_drawings))
-    test_folder = TEST_DATA + item + '.bin'
-    test_drawings = unpack_drawings(test_folder)
-    test_imgs += test_drawings
-    test_counts.append(len(test_drawings))
-  
-#-------------------------------------------------------------------------------------------
-
 # seed RNGs
 torch.manual_seed(RAND_SEED)
 random.seed(RAND_SEED)
 
 # create train, eval, and test datasets
-train_data = QuickdrawDataset(train_imgs, train_counts, is_test=False)
-val_data = QuickdrawDataset(val_imgs, val_counts, is_test=False)
-test_data = QuickdrawDataset(test_imgs, test_counts, is_test=True)
+train_data = MNIST_VAL(root=MNIST_DATA, train=True, val=False, download=True, transform=transform_train)
+val_data = MNIST_VAL(root=MNIST_DATA, train=True, val=True, download=True, transform=transform_train)
+test_data = MNIST_VAL(root=MNIST_DATA, train=False, download=True, transform=transform_test) 
 
 # create generator for dataloaders and create dataloaders for each dataset
 g = torch.Generator()
@@ -364,12 +245,13 @@ if not args.skip_test:
     print(f"Acc std: {std:.7f}")
     print("\n-------------------------------\n")
 
-    rng = np.random.default_rng(seed=RAND_SEED)
-    worst = rng.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
+    test_imgs = MNIST_VAL(root=MNIST_DATA, train=False, download=True)
+    RNG = np.random.default_rng(seed=RAND_SEED)
+    worst = RNG.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
     fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
     os.mkdir(fig_save)
     for i in range(9):
-        plt.imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray_r',vmin=0,vmax=255)
-        plt.title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"")
+        plt.imshow(test_imgs[worst[i]][0],cmap='gray',vmin=0,vmax=255)
+        plt.title(f"\"{test_imgs[worst[i]][1]}\"")
         plt.savefig(os.path.join(fig_save, str(worst[i])))
         plt.show()

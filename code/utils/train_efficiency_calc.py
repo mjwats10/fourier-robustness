@@ -50,7 +50,7 @@ def plot_data(model_data, dataset):
 
     for model, data in model_data.items():
         max_len = max(map(len, data['validation_accuracy']))
-        acc_arry = np.array([acc + [None]*(max_len - len(acc)) for acc in data['validation_accuracy']], dtype=float)
+        acc_arry = np.array([acc + [None]*(max_len - len(acc)) for acc in data['validation_accuracy']], dtype=np.float32)
         acc_arry = np.nan_to_num(acc_arry)
         num_vals = np.count_nonzero(acc_arry, axis=0)
         acc_sums = np.sum(acc_arry, axis=0, keepdims=False)
@@ -59,7 +59,7 @@ def plot_data(model_data, dataset):
         avg_test_accuracy = avg_validation_accuracy * avg_test_accuracy / avg_validation_accuracy[-1]
         avg_time_per_epoch = sum(data['time_per_epoch']) / len(data['time_per_epoch'])
         epochs = list(range(1, len(avg_validation_accuracy) + 1))
-        times = np.array([epoch * avg_time_per_epoch for epoch in epochs], dtype=float)
+        times = np.array([epoch * avg_time_per_epoch for epoch in epochs], dtype=np.float32)
 
         plt.plot(times, avg_test_accuracy, label=model_labels[model])
 
