@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# path to repo
 path='/home/matt/fourier'
-
-# device name
 device='cuda:0'
+
+cd $path
+source env/bin/activate
 
 for seed in 0 1 2 3 4
 do

@@ -14,6 +14,8 @@ from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
+import matplotlib.pyplot as plt
+import os
 
 # argparse
 parser = argparse.ArgumentParser()
@@ -32,8 +34,8 @@ args = parser.parse_args()
 # Const vars
 EXP_NAME = 'qd-345_fourier_gnn'
 ROOT_PATH = args.root_path
-CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
-BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
+CHECK_PATH = ROOT_PATH + '/models/first_draft/' + EXP_NAME + '_check.pt'
+BEST_PATH = ROOT_PATH + '/models/first_draft/' + EXP_NAME + '_best.pt'
 TRAIN_DATA = ROOT_PATH + '/qd-345/train/'
 VAL_DATA = ROOT_PATH + '/qd-345/val/'
 TEST_DATA = ROOT_PATH + '/qd-345/test/'
@@ -45,6 +47,7 @@ WIDTH_MULTIPLE = args.width_mult
 DEEP = args.deep
 SKIP = args.skip_conn
 IMG_SIDE = 256
+PADDING = 62 if IMG_SIDE == 256 else 96
 NUM_CLASSES = 345
 EPOCHS = 90
 LEARNING_RATE = 1e-3
@@ -55,7 +58,51 @@ EDGE_ATTR_DIM = 3
 #-------------------------------------------------------------------------------------------
 
 # convert raw vector image to single raster image
-def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=80, bg_color=(0,0,0), fg_color=(1,1,1)):
+def vector_to_raster(vector_image, side=IMG_SIDE, line_diameter=16, padding=PADDING, bg_color=(0,0,0), fg_color=(1,1,1)):
+    """
+    padding and line_diameter are relative to the original 256x256 image.
+    """
+    
+    original_side = 256.
+    
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, side, side)
+    ctx = cairo.Context(surface)
+    ctx.set_antialias(cairo.ANTIALIAS_BEST)
+    ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
+    ctx.set_line_width(line_diameter)
+
+    # scale to match the new size
+    # add padding at the edges for the line_diameter
+    # and add additional padding to account for antialiasing
+    total_padding = padding * 2. + line_diameter
+    new_scale = float(side) / float(original_side + total_padding)
+    ctx.scale(new_scale, new_scale)
+    ctx.translate(total_padding / 2., total_padding / 2.)
+        
+    bbox = np.hstack(vector_image).max(axis=1)
+    offset = ((original_side, original_side) - bbox) / 2.
+    offset = offset.reshape(-1,1)
+    centered = [stroke + offset for stroke in vector_image]
+
+    # clear background
+    ctx.set_source_rgb(*bg_color)
+    ctx.paint()
+
+    # draw strokes, this is the most cpu-intensive part
+    ctx.set_source_rgb(*fg_color)     
+    for xv, yv in centered:   
+        ctx.move_to(xv[0], yv[0])
+        for x, y in zip(xv, yv):
+            ctx.line_to(x, y)
+        ctx.stroke()
+
+    data = surface.get_data()
+    raster = np.copy(np.asarray(data)[::4]).reshape(side, side)
+    return raster
+
+# convert raw vector image to sequence of raster images
+def vector_to_rasters(vector_image, side=IMG_SIDE, line_diameter=16, padding=PADDING, bg_color=(0,0,0), fg_color=(1,1,1)):
   """
   padding and line_diameter are relative to the original 256x256 image.
   """
@@ -190,7 +237,7 @@ stdevs = np.asarray([[1.00000000e+00, 1.00000000e+00, 1.00000000e+00, 2.77546598
 
 # transform functions - take sketch image, return torch tensor of descriptors
 def fourier_transform(vector_img, is_test):
-  stroke_rasters = vector_to_raster(vector_img)
+  stroke_rasters = vector_to_rasters(vector_img)
 
   # add rotations and translations at test time
   if is_test: 
@@ -370,21 +417,27 @@ def train_loop(dataloader, model, loss_fn, optimizer):
       total_loss += loss_val
       # print(f"train loss: {loss_val:>7f}   train accuracy: {correct / BATCH_SIZE:.7f}   [batch: {batch + 1:3d}/{(size // BATCH_SIZE) + 1:3d}]")      
     print(f"\nepoch avg train loss: {total_loss / ((size // BATCH_SIZE) + 1):.7f}   epoch avg train accuracy: {total_correct / size:.4f}")
-      
-def rand_test_loop(dataloader, model):
-  model.eval()
-  size = len(dataloader.dataset)
-  with torch.no_grad():
-    total_correct = 0
-    for data in dataloader:
-      data = data.to(DEVICE)
-      out = model(data)
-      data, out = data.to("cpu"), out.to("cpu")
-      pred = out.argmax(dim=1, keepdim=True)
-      total_correct += pred.eq(data.y.view_as(pred)).sum().item()
 
-    accuracy = total_correct / size
-    return accuracy
+def rand_test_loop(dataloader, model):
+    model.eval()
+    size = len(dataloader.dataset)
+    with torch.no_grad():
+        total_correct = 0
+        batch_num = 0
+        all_incorrect = np.empty(0, dtype=np.int64)
+        for data in dataloader:
+            data = data.to(DEVICE)
+            out = model(data)
+            out, y = out.to("cpu"), data.y.to("cpu")
+            pred = out.argmax(dim=1, keepdims=True)
+            correct_mask = pred.eq(y.view_as(pred))
+            total_correct += correct_mask.sum().item()
+            batch_incorrect = batch_num * BATCH_SIZE + np.nonzero(correct_mask.numpy() == False)[0]
+            all_incorrect = np.concatenate([all_incorrect, batch_incorrect])
+            batch_num += 1
+
+        accuracy = total_correct / size
+        return accuracy, all_incorrect
     
 #-------------------------------------------------------------------------------------------
 
@@ -555,7 +608,7 @@ if not args.skip_train:
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optim.state_dict()
                     }, CHECK_PATH)
-        acc = rand_test_loop(dataloader=val_loader,model=model)
+        acc, __ = rand_test_loop(dataloader=val_loader,model=model)
         if acc > best_acc:
             torch.save(model.state_dict(), BEST_PATH)
             best_acc = acc
@@ -571,11 +624,24 @@ if not args.skip_test:
     model.load_state_dict(torch.load(BEST_PATH))
     random.seed(RAND_SEED)
     accuracies = []
+    incorrect_counts = np.zeros(len(test_data), dtype=np.int64)
     for i in range(30):
-        accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
+        accuracy, incorrect_idx = rand_test_loop(dataloader=test_loader,model=model)
+        accuracies.append(accuracy)
+        incorrect_counts[incorrect_idx] += 1
     accuracies = np.asarray(accuracies)
     mean = np.mean(accuracies)
     std = np.std(accuracies)
     print(f"Mean acc: {mean:.4f}")
     print(f"Acc std: {std:.7f}")
     print("\n-------------------------------\n")
+
+    rng = np.random.default_rng(seed=RAND_SEED)
+    worst = rng.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
+    fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
+    os.mkdir(fig_save)
+    for i in range(9):
+        plt.imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray',vmin=0,vmax=255)
+        plt.title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"")
+        plt.savefig(os.path.join(fig_save, str(worst[i])))
+        plt.show()

@@ -8,6 +8,8 @@ import random
 import numpy as np
 import pyefd
 import cv2
+import matplotlib.pyplot as plt
+import os
 
 # argparse
 parser = argparse.ArgumentParser()
@@ -22,8 +24,8 @@ args = parser.parse_args()
 # Const vars
 EXP_NAME = 'mnist_fourier_cnn5-2'
 ROOT_PATH = args.root_path
-CHECK_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_check.pt'
-BEST_PATH = ROOT_PATH + '/models/' + EXP_NAME + '_best.pt'
+CHECK_PATH = ROOT_PATH + '/models/first_draft/' + EXP_NAME + '_check.pt'
+BEST_PATH = ROOT_PATH + '/models/first_draft/' + EXP_NAME + '_best.pt'
 MNIST_DATA = ROOT_PATH + '/mnist'
 
 FOURIER_ORDER = 1
@@ -199,19 +201,25 @@ def train_loop(dataloader, model, loss_fn, optimizer):
 
 # rand_test_loop evaluates model performance on test set with random affine transformations
 def rand_test_loop(dataloader, model):
-  model.eval()
-  size = len(dataloader.dataset)
-  with torch.no_grad():
-    total_correct = 0
-    for x, y in dataloader:
-      x = x.to(DEVICE)
-      out = model(x)
-      out = out.to("cpu")
-      pred = out.argmax(dim=1, keepdim=True)
-      total_correct += pred.eq(y.view_as(pred)).sum().item()
+    model.eval()
+    size = len(dataloader.dataset)
+    with torch.no_grad():
+        total_correct = 0
+        batch_num = 0
+        all_incorrect = np.empty(0, dtype=np.int64)
+        for x, y in dataloader:
+            x = x.to(DEVICE)
+            out = model(x)
+            out = out.to("cpu")
+            pred = out.argmax(dim=1, keepdims=True)
+            correct_mask = pred.eq(y.view_as(pred))
+            total_correct += correct_mask.sum().item()
+            batch_incorrect = batch_num * BATCH_SIZE + np.nonzero(correct_mask.numpy() == False)[0]
+            all_incorrect = np.concatenate([all_incorrect, batch_incorrect])
+            batch_num += 1
 
-    accuracy = total_correct / size
-    return accuracy
+        accuracy = total_correct / size
+        return accuracy, all_incorrect
 
 # seed RNGs
 torch.manual_seed(RAND_SEED)
@@ -264,7 +272,7 @@ if not args.skip_train:
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optim.state_dict()
                     }, CHECK_PATH)
-        acc = rand_test_loop(dataloader=val_loader,model=model)
+        acc, __ = rand_test_loop(dataloader=val_loader,model=model)
         if acc > best_acc:
             torch.save(model.state_dict(), BEST_PATH)
             best_acc = acc
@@ -280,11 +288,25 @@ if not args.skip_test:
     model.load_state_dict(torch.load(BEST_PATH))
     random.seed(RAND_SEED)
     accuracies = []
+    incorrect_counts = np.zeros(len(test_data), dtype=np.int64)
     for i in range(30):
-        accuracies.append(rand_test_loop(dataloader=test_loader,model=model))
+        accuracy, incorrect_idx = rand_test_loop(dataloader=test_loader,model=model)
+        accuracies.append(accuracy)
+        incorrect_counts[incorrect_idx] += 1
     accuracies = np.asarray(accuracies)
     mean = np.mean(accuracies)
     std = np.std(accuracies)
     print(f"Mean acc: {mean:.4f}")
     print(f"Acc std: {std:.7f}")
     print("\n-------------------------------\n")
+
+    test_imgs = MNIST_VAL(root=MNIST_DATA, train=False, download=True)
+    rng = np.random.default_rng(seed=RAND_SEED)
+    worst = rng.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
+    fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
+    os.mkdir(fig_save)
+    for i in range(9):
+        plt.imshow(test_imgs[worst[i]][0],cmap='gray',vmin=0,vmax=255)
+        plt.title(f"\"{test_imgs[worst[i]][1]}\"")
+        plt.savefig(os.path.join(fig_save, str(worst[i])))
+        plt.show()
