@@ -53,12 +53,12 @@ transforms_norm = T.Compose(
 # transform functions - take sketch image, return torch tensor of descriptors
 def transform_train(img):
     img = np.array(img)
-    img = random_noise(img, mode='salt', seed=RNG, amount=0.1)
+    img = np.float32(random_noise(img, mode='salt', seed=RNG, amount=0.1))
     return transforms_norm(img)
 
 def transform_test(img):
     img = np.array(img)
-    img = random_noise(img, mode='salt', seed=RNG, amount=0.1)
+    img = np.float32(random_noise(img, mode='salt', seed=RNG, amount=0.1))
     return transforms_norm(img)
 
 
