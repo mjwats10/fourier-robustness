@@ -309,4 +309,4 @@ if not args.skip_test:
         for i in range(9):
             plt.imshow(test_imgs[worst[i]][0],cmap='gray',vmin=0,vmax=255)
             plt.title(f"\"{test_imgs[worst[i]][1]}\"")
-            plt.savefig(os.path.join(fig_save, str(worst[i])))
+            plt.savefig(os.path.join(fig_save, str(worst[i])),dpi=2000)

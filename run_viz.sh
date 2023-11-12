@@ -10,11 +10,15 @@ gnn_width=0.25
 cd $path
 source env/bin/activate
 
-# python -u -W ignore::UserWarning code/models/mnist_aug_cnn.py $path $device $seed --skip_train
-# python -u -W ignore::UserWarning code/models/mnist_aug_mispredict_cnn.py $path $device $seed --skip_train
-# python -u -W ignore::UserWarning code/models/mnist_baseline_cnn.py $path $device $seed --skip_train
-# python -u -W ignore::UserWarning code/models/mnist_fourier_cnn.py $path $device $seed --skip_train
-# python -u -W ignore::UserWarning code/models/mnist_fourier_mlp.py $path $device $seed $terms_mlp --skip_train
+python -u -W ignore::UserWarning code/models/mnist_aug_cnn.py $path $device $seed --skip_train
+python -u -W ignore::UserWarning code/models/mnist_aug_mispredict_cnn.py $path $device $seed --skip_train
+python -u -W ignore::UserWarning code/models/mnist_baseline_cnn.py $path $device $seed --skip_train
+python -u -W ignore::UserWarning code/models/mnist_fourier_cnn.py $path $device $seed --skip_train
+python -u -W ignore::UserWarning code/models/mnist_fourier_mlp.py $path $device $seed $terms_mlp --skip_train
+
+python -u -W ignore::UserWarning code/models/mnist_noise_aug_cnn.py $path $device $seed --skip_train
+python -u -W ignore::UserWarning code/models/mnist_noise_baseline_cnn.py $path $device $seed --skip_train
+python -u -W ignore::UserWarning code/models/mnist_noise_fourier_mlp.py $path $device $seed --skip_train
 
 python -u -W ignore::UserWarning code/models/qd-3_aug_cnn.py $path $device $seed --skip_train
 python -u -W ignore::UserWarning code/models/qd-3_aug_mispredict_cnn.py $path $device $seed --skip_train

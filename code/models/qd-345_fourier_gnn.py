@@ -644,4 +644,4 @@ if not args.skip_test:
         for i in range(9):
             plt.imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray_r',vmin=0,vmax=255)
             plt.title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"")
-            plt.savefig(os.path.join(fig_save, str(worst[i])))
+            plt.savefig(os.path.join(fig_save, str(worst[i])),dpi=2000)

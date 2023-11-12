@@ -287,6 +287,7 @@ if not args.skip_test:
     print("Evaluating against random transformations...")
     model.load_state_dict(torch.load(BEST_PATH))
     random.seed(RAND_SEED)
+    RNG = np.random.default_rng(seed=RAND_SEED)
     accuracies = []
     incorrect_counts = np.zeros(len(test_data), dtype=np.int64)
     for i in range(30):
@@ -302,7 +303,6 @@ if not args.skip_test:
 
     if RAND_SEED == 0:
         test_imgs = MNIST_VAL(root=MNIST_DATA, train=False, download=True)
-        RNG = np.random.default_rng(seed=RAND_SEED)
         worst = RNG.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
         fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
         os.mkdir(fig_save)
@@ -310,4 +310,4 @@ if not args.skip_test:
             img = random_noise(np.array(test_imgs[worst[i]][0]), mode='salt', seed=RNG, amount=0.1)
             plt.imshow(255*img,cmap='gray',vmin=0,vmax=255)
             plt.title(f"\"{test_imgs[worst[i]][1]}\"")
-            plt.savefig(os.path.join(fig_save, str(worst[i])))
+            plt.savefig(os.path.join(fig_save, str(worst[i])),dpi=2000)

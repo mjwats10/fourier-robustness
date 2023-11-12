@@ -35,10 +35,10 @@ def process_directory(directory_path, model_names, model_labels, time_per_run):
 
             if os.path.exists(file_path):
                 accuracy_values = extract_validation_accuracy(file_path)
-                test_value = extract_test_accuracy(file_path)
-                if accuracy_values and test_value:
+                test_acc_value = extract_test_accuracy(file_path)
+                if accuracy_values and test_acc_value:
                     model_data[model]['validation_accuracy'].append(accuracy_values)
-                    model_data[model]['test_accuracy'].append(test_value)
+                    model_data[model]['test_accuracy'].append(test_acc_value)
                     time_per_epoch = time_per_run / len(accuracy_values)
                     model_data[model]['time_per_epoch'].append(time_per_epoch)
 
@@ -47,6 +47,8 @@ def process_directory(directory_path, model_names, model_labels, time_per_run):
 # plot the data
 def plot_data(model_data, dataset):
     plt.figure(figsize=(10, 6))
+    print(dataset)
+    print("Mean Acc  |    Stdev")
 
     for model, data in model_data.items():
         max_len = max(map(len, data['validation_accuracy']))
@@ -61,21 +63,26 @@ def plot_data(model_data, dataset):
         epochs = list(range(1, len(avg_validation_accuracy) + 1))
         times = np.array([epoch * avg_time_per_epoch for epoch in epochs], dtype=np.float32)
 
-        plt.plot(times, avg_test_accuracy, label=model_labels[model])
+        plt.plot(times, avg_test_accuracy, label=data['label'])
+        test_acc_arry = np.array(data['test_accuracy'])
+        mean = np.mean(test_acc_arry)
+        stdev = np.std(test_acc_arry)
+        print(data['label'])
+        print(mean, stdev)
 
     plt.xlabel('Time (minutes)')
     plt.ylabel('Test Accuracy')
     plt.title(f"{dataset} Test Accuracy vs Wall-Clock Time")
     plt.legend()
-    plt.show()
-
+    fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', f"{dataset} Efficiency")
+    plt.savefig(fig_save,dpi=2000)
 #-------------------------------------------------------------------------------------------
 
 directory = "/home/matt/fourier/logs"
-model_names = ['mnist_aug_cnn', 'mnist_aug_mispredict_cnn', 'mnist_baseline_cnn', 'mnist_fourier_cnn', 'mnist_fourier_mlp']
-model_labels = {model_names[0]: 'Augmentation-CNN', model_names[1]: 'Mispredict-CNN', model_names[2]: 'Baseline-CNN', model_names[3]: 'Fourier-CNN', model_names[4]: 'Fourier-MLP'}
-dataset = "MNIST"
-time_per_run = 10
+model_names = ['qd-345_aug_cnn', 'qd-345_aug_mispredict_cnn', 'qd-345_baseline_cnn', 'qd-345_fourier_cnn_largest', 'qd-345_fourier_gnn_w0.25_deep_skip']
+model_labels = ['Augmentation-CNN', 'Mispredict-CNN', 'Baseline-CNN', 'Fourier-CNN', 'Fourier-GNN']
+dataset = "QD-345"
+time_per_run = 120
 
 model_data = process_directory(directory, model_names, model_labels, time_per_run)
 plot_data(model_data, dataset)
