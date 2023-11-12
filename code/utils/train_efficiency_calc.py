@@ -75,14 +75,14 @@ def plot_data(model_data, dataset):
     plt.title(f"{dataset} Test Accuracy vs Wall-Clock Time")
     plt.legend()
     fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', f"{dataset} Efficiency")
-    plt.savefig(fig_save,dpi=2000)
+    plt.savefig(fig_save,dpi=2000,bbox_inches='tight')
 #-------------------------------------------------------------------------------------------
 
 directory = "/home/matt/fourier/logs"
-model_names = ['qd-345_aug_cnn', 'qd-345_aug_mispredict_cnn', 'qd-345_baseline_cnn', 'qd-345_fourier_cnn_largest', 'qd-345_fourier_gnn_w0.25_deep_skip']
-model_labels = ['Augmentation-CNN', 'Mispredict-CNN', 'Baseline-CNN', 'Fourier-CNN', 'Fourier-GNN']
-dataset = "QD-345"
-time_per_run = 120
+model_names = ['mnist_noise_aug_cnn', 'mnist_noise_baseline_cnn', 'mnist_noise_fourier_mlp']
+model_labels = ['Augmentation-CNN', 'Baseline-CNN', 'Fourier-MLP']
+dataset = "Noisy MNIST"
+time_per_run = 10
 
 model_data = process_directory(directory, model_names, model_labels, time_per_run)
 plot_data(model_data, dataset)

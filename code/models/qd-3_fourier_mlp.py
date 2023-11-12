@@ -421,9 +421,13 @@ if not args.skip_test:
     if RAND_SEED == 0:
         rng = np.random.default_rng(seed=RAND_SEED)
         worst = rng.choice(np.nonzero(incorrect_counts == 30)[0], size=9, replace=False)
-        fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', EXP_NAME)
-        os.mkdir(fig_save)
+        fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
+        f, axarr = plt.subplots(3,3)
         for i in range(9):
-            plt.imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray_r',vmin=0,vmax=255)
-            plt.title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"")
-            plt.savefig(os.path.join(fig_save, str(worst[i])),dpi=2000)
+            x = i % 3
+            y = i // 3
+            axarr[x, y].imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray',vmin=0,vmax=255)
+            axarr[x, y].set_title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"", pad=0)
+            axarr[x, y].axis('off')
+        plt.suptitle("Fourier-MLP")
+        plt.savefig(os.path.join(fig_save, EXP_NAME),dpi=2000,bbox_inches='tight')
