@@ -404,7 +404,7 @@ if not args.skip_test:
         for i in range(9):
             x = i % 3
             y = i // 3
-            axarr[x, y].imshow(vector_to_raster(test_imgs[worst[i]],padding=0),cmap='gray',vmin=0,vmax=255)
+            axarr[x, y].imshow(vector_to_raster(test_imgs[worst[i]],padding=0, line_diameter=4),cmap='gray_r',vmin=0,vmax=255)
             axarr[x, y].set_title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"", pad=0)
             axarr[x, y].axis('off')
         plt.suptitle("Augmentation-CNN")
