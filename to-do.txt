@@ -1,3 +1,0 @@
-Add visualizations of failure modes to accompany speculation about reasons for failures.
-Calculate a measure of compute used during training to identify potential efficiency advantages
-Run additional experiment on MNIST in which high-frequency noise is added as the test-time corruption. Hypothesis: Fourier-MLP should be minimally affected by HF noise, relative to CNN-based methods.
