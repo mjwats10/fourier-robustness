@@ -647,5 +647,5 @@ if not args.skip_test:
             axarr[x, y].imshow(vector_to_raster(test_imgs[worst[i]],padding=0, line_diameter=4),cmap='gray_r',vmin=0,vmax=255)
             axarr[x, y].set_title(f"\"{list_of_classes[find_class(worst[i], test_counts)]}\"", pad=0)
             axarr[x, y].axis('off')
-        plt.suptitle("Fourier-GNN")
-        plt.savefig(os.path.join(fig_save, EXP_NAME),dpi=2000,bbox_inches='tight')
+        plt.suptitle("QD-345: Fourier-GNN")
+        plt.savefig(os.path.join(fig_save, f"{EXP_NAME}.pdf"),dpi=2000,bbox_inches='tight')

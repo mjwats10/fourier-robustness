@@ -74,7 +74,7 @@ def plot_data(model_data, dataset):
     plt.ylabel('Test Accuracy')
     plt.title(f"{dataset} Test Accuracy vs Wall-Clock Time")
     plt.legend()
-    fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', f"{dataset} Efficiency")
+    fig_save = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop', f"{dataset} Efficiency.pdf")
     plt.savefig(fig_save,dpi=2000,bbox_inches='tight')
 #-------------------------------------------------------------------------------------------
 

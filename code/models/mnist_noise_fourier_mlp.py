@@ -313,5 +313,5 @@ if not args.skip_test:
             axarr[x, y].imshow(255*img,cmap='gray',vmin=0,vmax=255)
             axarr[x, y].set_title(f"\"{test_imgs[worst[i]][1]}\"", pad=0)
             axarr[x, y].axis('off')
-        plt.suptitle("Fourier-MLP")
-        plt.savefig(os.path.join(fig_save, EXP_NAME),dpi=2000,bbox_inches='tight')
+        plt.suptitle("Noisy MNIST: Fourier-MLP")
+        plt.savefig(os.path.join(fig_save, f"{EXP_NAME}.pdf"),dpi=2000,bbox_inches='tight')
